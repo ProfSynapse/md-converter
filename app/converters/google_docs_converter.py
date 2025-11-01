@@ -206,6 +206,127 @@ class GoogleDocsConverter:
 
         return doc_id
 
+    def _create_first_page_header(self, doc_id: str, metadata: Dict) -> None:
+        """
+        Create a header on the first page with front matter content.
+
+        Args:
+            doc_id: Document ID
+            metadata: Front matter metadata dict
+
+        Raises:
+            HttpError: If header creation fails
+        """
+        self.logger.debug("Creating first page header with front matter")
+
+        # Step 1: Enable "different first page" for headers
+        # Step 2: Create default header
+        # Step 3: Insert front matter content into the default header
+
+        requests = []
+
+        # Enable different first page
+        requests.append({
+            'updateDocumentStyle': {
+                'documentStyle': {
+                    'useFirstPageHeaderFooter': True
+                },
+                'fields': 'useFirstPageHeaderFooter'
+            }
+        })
+
+        # Create default header (this will be used for all pages including first)
+        requests.append({
+            'createHeader': {
+                'type': 'DEFAULT'
+            }
+        })
+
+        # Execute to get header ID
+        response = self.docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests}
+        ).execute()
+
+        # Get the header ID from the response
+        header_id = response['replies'][1]['createHeader']['headerId']
+        self.logger.debug(f"Created header with ID: {header_id}")
+
+        # Step 4: Build front matter content for header
+        header_text = self._format_front_matter_for_header(metadata)
+
+        # Step 5: Insert text into header
+        insert_requests = [{
+            'insertText': {
+                'location': {
+                    'segmentId': header_id,
+                    'index': 0
+                },
+                'text': header_text
+            }
+        }]
+
+        # Apply text formatting to header
+        # Apply bold to the entire header text
+        if len(header_text) > 0:
+            insert_requests.append({
+                'updateTextStyle': {
+                    'range': {
+                        'segmentId': header_id,
+                        'startIndex': 0,
+                        'endIndex': len(header_text)
+                    },
+                    'textStyle': {
+                        'fontSize': {
+                            'magnitude': 10,
+                            'unit': 'PT'
+                        }
+                    },
+                    'fields': 'fontSize'
+                }
+            })
+
+        self.docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': insert_requests}
+        ).execute()
+
+        self.logger.debug("Front matter added to header")
+
+    def _format_front_matter_for_header(self, metadata: Dict) -> str:
+        """
+        Format front matter as plain text for header.
+
+        Args:
+            metadata: Front matter key-value pairs
+
+        Returns:
+            str: Formatted header text
+        """
+        lines = []
+
+        # Add title if present
+        if 'title' in metadata:
+            lines.append(metadata['title'])
+
+        # Add other metadata
+        for key, value in metadata.items():
+            if key != 'title':
+                # Format key nicely
+                key_display = key.replace('_', ' ').title()
+
+                # Handle different value types
+                if isinstance(value, list):
+                    value_str = ', '.join(str(v) for v in value)
+                elif hasattr(value, 'strftime'):  # Date object
+                    value_str = value.strftime('%Y-%m-%d')
+                else:
+                    value_str = str(value)
+
+                lines.append(f"{key_display}: {value_str}")
+
+        return '\n'.join(lines)
+
     def _apply_content(
         self,
         doc_id: str,
@@ -246,30 +367,23 @@ class GoogleDocsConverter:
 
         self.logger.debug(f"Successfully applied {len(requests)} requests")
 
-    def _build_requests(self, markdown_body: str, metadata: Dict) -> list:
+    def _build_requests(self, markdown_body: str, metadata: Optional[Dict] = None) -> list:
         """
         Build Docs API batchUpdate requests from markdown.
 
         Args:
             markdown_body: Markdown content string
-            metadata: Front matter metadata
+            metadata: Front matter metadata (optional, used for body insertion - deprecated)
 
         Returns:
             list: Docs API request dicts
 
-        This method uses markgdoc if available, otherwise falls back
-        to basic text insertion.
+        Note: Front matter is now added to the header, not the body.
         """
         requests = []
         start_index = 1
 
-        # Add front matter as document header
-        if metadata:
-            front_matter_requests, final_index = self._format_front_matter(metadata)
-            requests.extend(front_matter_requests)
-            start_index = final_index
-
-        # Convert markdown to API requests
+        # Convert markdown to API requests (starting from index 1)
         self.logger.debug("Using custom markdown parser")
         md_requests = self._parse_markdown_to_requests(markdown_body, start_index)
         if isinstance(md_requests, list):
