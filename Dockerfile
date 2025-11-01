@@ -67,10 +67,6 @@ COPY --chown=appuser:appuser app/ /app/app/
 COPY --chown=appuser:appuser static/ /app/static/
 COPY --chown=appuser:appuser wsgi.py /app/
 COPY --chown=appuser:appuser requirements.txt /app/
-COPY --chown=appuser:appuser start.sh /app/
-
-# Make startup script executable
-RUN chmod +x /app/start.sh
 
 # Switch to non-root user
 USER appuser
@@ -83,5 +79,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Start application with startup script
-CMD ["/app/start.sh"]
+# Start application with Gunicorn
+# Using shell form (not exec form) to allow environment variable expansion
+CMD gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 --timeout 30 --access-logfile - --error-logfile - --log-level info wsgi:app

@@ -8,7 +8,8 @@
       "Bash(dd:*)",
       "Bash(pkill:*)",
       "Bash(FLASK_ENV=development python3:*)",
-      "WebFetch(domain:picoshare-production-7223.up.railway.app)"
+      "WebFetch(domain:picoshare-production-7223.up.railway.app)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
