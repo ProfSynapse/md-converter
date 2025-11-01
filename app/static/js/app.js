@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Format selection elements
   const formatCheckboxes = document.querySelectorAll('.format-checkbox');
-  const selectionCount = document.getElementById('selection-count');
   const gdocsCheckbox = document.getElementById('gdocs-checkbox');
   const gdocsCard = document.getElementById('gdocs-card');
   const gdocsAuthBadge = document.getElementById('gdocs-auth-badge');
@@ -195,18 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateSelectionCount() {
     const selectedFormats = getSelectedFormats();
     const count = selectedFormats.length;
-
-    // Update selection count text
-    if (count === 0) {
-      selectionCount.textContent = 'No formats selected';
-      selectionCount.classList.remove('text-brand-aqua', 'font-medium');
-      selectionCount.classList.add('text-gray-600');
-    } else {
-      const formatText = count === 1 ? 'format' : 'formats';
-      selectionCount.textContent = `${count} ${formatText} selected`;
-      selectionCount.classList.remove('text-gray-600');
-      selectionCount.classList.add('text-brand-aqua', 'font-medium');
-    }
 
     // Enable/disable convert button
     convertBtn.disabled = !selectedFile || count === 0 || isProcessing;
