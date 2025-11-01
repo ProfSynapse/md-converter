@@ -13,6 +13,7 @@ Dependencies:
 
 Used by: app/api/routes.py for conversion requests
 """
+from flask import current_app
 from flask_dance.contrib.google import google
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -44,12 +45,16 @@ def get_google_credentials():
 
     token_data = google.token
 
+    # Get client_id and client_secret from app config
+    client_id = current_app.config.get('GOOGLE_OAUTH_CLIENT_ID')
+    client_secret = current_app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')
+
     credentials = Credentials(
         token=token_data['access_token'],
         refresh_token=token_data.get('refresh_token'),
         token_uri='https://oauth2.googleapis.com/token',
-        client_id=google.client_id,
-        client_secret=google.client_secret,
+        client_id=client_id,
+        client_secret=client_secret,
         scopes=token_data.get('scope', [])
     )
 
