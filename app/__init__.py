@@ -40,7 +40,32 @@ def create_app(config_name='default'):
     # Create necessary directories
     os.makedirs(app.config['CONVERTED_FOLDER'], exist_ok=True)
 
-    # Register blueprints
+    # Register OAuth blueprint (Flask-Dance)
+    if app.config.get('GOOGLE_OAUTH_CLIENT_ID') and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET'):
+        from flask_dance.contrib.google import make_google_blueprint
+
+        google_bp = make_google_blueprint(
+            client_id=app.config['GOOGLE_OAUTH_CLIENT_ID'],
+            client_secret=app.config['GOOGLE_OAUTH_CLIENT_SECRET'],
+            scope=[
+                'https://www.googleapis.com/auth/documents',
+                'https://www.googleapis.com/auth/drive.file',
+                'openid',
+                'email',
+                'profile'
+            ],
+            redirect_to='index',  # Redirect to home after login
+        )
+        app.register_blueprint(google_bp, url_prefix='/auth/google')
+        app.logger.info('Google OAuth blueprint registered')
+    else:
+        app.logger.warning('Google OAuth not configured - Google Docs conversion disabled')
+
+    # Register auth blueprint (custom auth routes)
+    from app.auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    # Register API blueprint
     from app.api import api_blueprint
     app.register_blueprint(api_blueprint, url_prefix='/api')
 

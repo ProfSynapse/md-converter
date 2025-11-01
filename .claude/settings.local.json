@@ -9,7 +9,10 @@
       "Bash(pkill:*)",
       "Bash(FLASK_ENV=development python3:*)",
       "WebFetch(domain:picoshare-production-7223.up.railway.app)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:developers.google.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:pypi.org)"
     ],
     "deny": [],
     "ask": []

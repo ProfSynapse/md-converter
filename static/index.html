@@ -3,275 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to Word/PDF Converter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="description" content="Convert Markdown files to Word (DOCX) and PDF formats">
+    <title>Markdown Converter - Convert MD to DOCX & PDF</title>
+
+    <!-- Google Fonts - Montserrat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-aqua: #00A99D;
-            --secondary-purple: #93278f;
-            --tertiary-cello: #33475b;
-            --accent-orange: #F7931E;
-            --accent-sky: #29ABE2;
-            --bg-white: #fbf7f1;
-        }
-        body {
-            font-family: 'Montserrat', sans-serif;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Custom Configuration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#00A99D',
-                        secondary: '#93278f',
-                        tertiary: '#33475b',
-                        orange: '#F7931E',
-                        sky: '#29ABE2',
+                        'brand-aqua': '#00A99D',
+                        'brand-purple': '#93278f',
+                        'brand-cello': '#33475b',
+                        'brand-orange': '#F7931E',
+                        'brand-sky': '#29ABE2',
                         'brand-white': '#fbf7f1',
                     },
                     fontFamily: {
-                        'sans': ['Montserrat', 'sans-serif'],
+                        'sans': ['Montserrat', 'system-ui', 'sans-serif'],
                     },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
                 }
             }
         }
     </script>
+
+    <!-- Custom Styles -->
+    <style>
+        /* Custom animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        /* Drag over effect */
+        .drag-over {
+            border-color: #00A99D !important;
+            background-color: #fbf7f1 !important;
+        }
+
+        /* Progress bar animation */
+        .progress-bar {
+            transition: width 0.3s ease-in-out;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Focus visible for accessibility */
+        *:focus-visible {
+            outline: 2px solid #00A99D;
+            outline-offset: 2px;
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-brand-white min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-12">
-            <div class="flex justify-center items-center mb-4">
-                <img src="https://picoshare-production-7223.up.railway.app/-pRn4EtV2io" alt="Logo" class="h-20 w-20 object-contain">
-            </div>
-            <h1 class="text-4xl font-bold text-tertiary mb-2">Markdown Converter</h1>
-            <p class="text-tertiary font-light">Convert your Markdown files to Word or PDF with ease</p>
-        </header>
-
-        <main class="max-w-2xl mx-auto">
-            <!-- Upload Section -->
-            <div id="upload-section" class="bg-white rounded-lg shadow-lg p-8 mb-6">
-                <h2 class="text-2xl font-semibold mb-4 text-tertiary">Upload Markdown File</h2>
-
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition">
-                    <input type="file" id="file-input" accept=".md,.markdown,.txt" class="hidden">
-                    <label for="file-input" class="cursor-pointer">
-                        <div class="mb-4">
-                            <svg class="mx-auto h-12 w-12 text-primary" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                        <p class="text-lg text-tertiary mb-2">Click to upload or drag and drop</p>
-                        <p class="text-sm text-tertiary font-light">Markdown files (.md, .markdown, .txt) up to 10MB</p>
-                    </label>
-                </div>
-
-                <div id="file-info" class="mt-4 hidden">
-                    <p class="text-sm text-tertiary">Selected file: <span id="filename" class="font-medium"></span></p>
-                    <p class="text-sm text-tertiary">Size: <span id="filesize" class="font-medium"></span></p>
-                </div>
-
-                <div class="mt-6">
-                    <label class="block text-sm font-semibold text-tertiary mb-2">Output Format</label>
-                    <div class="flex gap-4">
-                        <label class="flex items-center">
-                            <input type="radio" name="format" value="both" checked class="mr-2">
-                            <span>Both (Word & PDF)</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="format" value="docx" class="mr-2">
-                            <span>Word Only</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="format" value="pdf" class="mr-2">
-                            <span>PDF Only</span>
-                        </label>
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b-2 border-brand-aqua">
+        <div class="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <img src="https://picoshare-production-7223.up.railway.app/-pRn4EtV2io" alt="Logo" class="h-12 w-auto">
+                    <div>
+                        <h1 class="text-3xl font-bold text-brand-cello">
+                            Markdown Converter
+                        </h1>
+                        <p class="mt-1 text-sm text-gray-600 font-light">
+                            Convert your .md files to Word, PDF, or Google Docs
+                        </p>
                     </div>
                 </div>
 
-                <button id="convert-btn" disabled class="mt-6 w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed transition shadow-md">
-                    Convert
-                </button>
-            </div>
+                <!-- Authentication UI -->
+                <div id="authContainer">
+                    <!-- Sign In Button (shown when not authenticated) -->
+                    <a href="/auth/google" id="signInBtn" class="hidden inline-flex items-center px-4 py-2 bg-white border-2 border-brand-sky text-brand-sky font-semibold rounded-lg hover:bg-brand-sky hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-sky focus:ring-offset-2 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                        Sign in with Google
+                    </a>
 
-            <!-- Progress Section -->
-            <div id="progress-section" class="bg-white rounded-lg shadow-lg p-8 mb-6 hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-tertiary">Converting...</h2>
-                <div class="w-full bg-gray-200 rounded-full h-4">
-                    <div id="progress-bar" class="bg-sky h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    <!-- User Profile (shown when authenticated) -->
+                    <div id="userProfile" class="hidden flex items-center space-x-3">
+                        <img id="userPicture" src="" alt="User profile" class="w-10 h-10 rounded-full border-2 border-brand-sky">
+                        <div class="flex flex-col">
+                            <span id="userName" class="text-sm font-semibold text-brand-cello"></span>
+                            <a href="/auth/logout" class="text-xs text-brand-sky hover:text-brand-sky/80 font-medium transition-colors">Sign out</a>
+                        </div>
+                    </div>
                 </div>
-                <p id="progress-text" class="text-center mt-2 text-tertiary font-light">Uploading file...</p>
             </div>
+        </div>
+    </header>
 
-            <!-- Download Section -->
-            <div id="download-section" class="bg-white rounded-lg shadow-lg p-8 mb-6 hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-primary">Conversion Complete!</h2>
-                <p class="text-tertiary mb-4">Your files are ready for download:</p>
-                <div id="download-links" class="space-y-3">
-                    <!-- Download links will be inserted here -->
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <!-- Error Message -->
+        <div id="errorContainer" class="hidden mb-6 slide-in">
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-700" id="errorMessage">
+                            An error occurred
+                        </p>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <button onclick="hideError()" class="text-red-400 hover:text-red-600" aria-label="Close error message">
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <button id="reset-btn" class="mt-6 w-full bg-tertiary text-white py-3 px-6 rounded-lg font-semibold hover:bg-opacity-90 transition shadow-md">
-                    Convert Another File
-                </button>
             </div>
+        </div>
 
-            <!-- Error Section -->
-            <div id="error-section" class="bg-white rounded-lg shadow-lg p-8 mb-6 hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-orange">Error</h2>
-                <p id="error-message" class="text-tertiary mb-4"></p>
-                <button id="error-reset-btn" class="w-full bg-tertiary text-white py-3 px-6 rounded-lg font-semibold hover:bg-opacity-90 transition shadow-md">
-                    Try Again
-                </button>
+        <!-- Upload Card -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-6 sm:p-8">
+                <!-- Drop Zone -->
+                <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 sm:p-12 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200" tabindex="0" role="button" aria-label="Upload markdown file - click or drag and drop">
+                    <input type="file" id="fileInput" accept=".md,.markdown,.txt" class="hidden" aria-label="File input" />
+
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+
+                    <p class="mt-4 text-lg font-medium text-gray-900">
+                        Drop your markdown file here
+                    </p>
+                    <p class="mt-2 text-sm text-gray-500">
+                        or click to browse
+                    </p>
+                    <p class="mt-1 text-xs text-gray-400">
+                        Supports .md, .markdown, and .txt files (max 10MB)
+                    </p>
+
+                    <!-- Selected File Display -->
+                    <div id="fileNameDisplay" class="hidden mt-6 inline-flex items-center px-4 py-2 bg-brand-aqua/10 text-brand-aqua rounded-full">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                        </svg>
+                        <span id="fileName" class="text-sm font-semibold"></span>
+                    </div>
+                </div>
+
+                <!-- Format Selection -->
+                <fieldset class="mt-6">
+                    <legend class="block text-sm font-semibold text-brand-cello mb-3">
+                        Select Output Format(s)
+                    </legend>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- DOCX Format Card -->
+                        <label class="relative flex flex-col items-center p-6 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-purple hover:shadow-md transition-all duration-200 peer-checked:border-brand-purple peer-checked:bg-brand-purple/5 focus-within:ring-2 focus-within:ring-brand-purple focus-within:ring-offset-2">
+                            <input
+                                type="checkbox"
+                                name="formats"
+                                value="docx"
+                                class="peer sr-only format-checkbox"
+                                aria-labelledby="docx-label"
+                            >
+
+                            <!-- Icon -->
+                            <svg class="h-12 w-12 mb-3 text-gray-400 peer-checked:text-brand-purple transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                <path d="M9 12h6M9 16h6M9 8h3" stroke="white" stroke-width="1" stroke-linecap="round"/>
+                            </svg>
+
+                            <!-- Label -->
+                            <span id="docx-label" class="text-base font-semibold text-brand-cello mb-1">
+                                Microsoft Word
+                            </span>
+                            <span class="text-sm text-gray-500 text-center">
+                                .docx format
+                            </span>
+
+                            <!-- Checkmark indicator -->
+                            <span class="absolute top-3 right-3 flex items-center justify-center w-6 h-6 bg-brand-purple rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                        </label>
+
+                        <!-- PDF Format Card -->
+                        <label class="relative flex flex-col items-center p-6 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-orange hover:shadow-md transition-all duration-200 peer-checked:border-brand-orange peer-checked:bg-brand-orange/5 focus-within:ring-2 focus-within:ring-brand-orange focus-within:ring-offset-2">
+                            <input
+                                type="checkbox"
+                                name="formats"
+                                value="pdf"
+                                class="peer sr-only format-checkbox"
+                                aria-labelledby="pdf-label"
+                            >
+
+                            <!-- Icon -->
+                            <svg class="h-12 w-12 mb-3 text-gray-400 peer-checked:text-brand-orange transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+
+                            <!-- Label -->
+                            <span id="pdf-label" class="text-base font-semibold text-brand-cello mb-1">
+                                PDF Document
+                            </span>
+                            <span class="text-sm text-gray-500 text-center">
+                                .pdf format
+                            </span>
+
+                            <!-- Checkmark indicator -->
+                            <span class="absolute top-3 right-3 flex items-center justify-center w-6 h-6 bg-brand-orange rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                        </label>
+
+                        <!-- Google Docs Format Card -->
+                        <label class="relative flex flex-col items-center p-6 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-sky hover:shadow-md transition-all duration-200 peer-checked:border-brand-sky peer-checked:bg-brand-sky/5 focus-within:ring-2 focus-within:ring-brand-sky focus-within:ring-offset-2" id="gdocs-card">
+                            <input
+                                type="checkbox"
+                                name="formats"
+                                value="gdocs"
+                                class="peer sr-only format-checkbox"
+                                aria-labelledby="gdocs-label"
+                                id="gdocs-checkbox"
+                            >
+
+                            <!-- Icon -->
+                            <svg class="h-12 w-12 mb-3 text-gray-400 peer-checked:text-brand-sky transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19H8V18H10V19M14,19H10V17H14V19M14,16H10V14H14V16M10,13H8V11H10V13M14,13H10V11H14V13Z" />
+                            </svg>
+
+                            <!-- Label -->
+                            <span id="gdocs-label" class="text-base font-semibold text-brand-cello mb-1">
+                                Google Docs
+                            </span>
+                            <span class="text-sm text-gray-500 text-center">
+                                Saved to Drive
+                            </span>
+
+                            <!-- Sign-in required badge -->
+                            <span class="hidden mt-2 text-xs text-amber-600 font-medium" id="gdocs-auth-badge">
+                                Sign in required
+                            </span>
+
+                            <!-- Checkmark indicator -->
+                            <span class="absolute top-3 right-3 flex items-center justify-center w-6 h-6 bg-brand-sky rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Selection feedback -->
+                    <p class="mt-3 text-sm text-gray-600" id="selection-count">
+                        No formats selected
+                    </p>
+                </fieldset>
+
+                <!-- Convert Button -->
+                <div class="mt-6">
+                    <button id="convertBtn" disabled class="w-full sm:w-auto px-6 py-3 bg-brand-aqua text-white font-semibold rounded-lg hover:bg-brand-aqua/90 focus:outline-none focus:ring-2 focus:ring-brand-aqua focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200" aria-label="Convert markdown file">
+                        <span id="convertBtnText">Convert File</span>
+                    </button>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div id="progressContainer" class="hidden mt-6 slide-in" role="status" aria-live="polite">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold text-brand-cello" id="statusMessage">Processing...</span>
+                        <span class="text-sm font-medium text-brand-aqua" id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                        <div id="progressBar" class="progress-bar bg-brand-aqua h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Download Buttons -->
+                <div id="downloadContainer" class="hidden mt-6 slide-in" role="region" aria-label="Download converted files">
+                    <div class="bg-brand-aqua/10 border-2 border-brand-aqua rounded-lg p-4">
+                        <div class="flex items-start">
+                            <svg class="w-6 h-6 text-brand-aqua mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div class="ml-3 flex-1">
+                                <h3 class="text-sm font-bold text-brand-cello">
+                                    Conversion Complete!
+                                </h3>
+                                <p class="mt-1 text-sm text-gray-700 font-medium">
+                                    Your files are ready
+                                </p>
+                                <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                                    <button id="downloadDocx" class="hidden inline-flex items-center px-4 py-2 bg-brand-purple text-white font-semibold rounded-lg hover:bg-brand-purple/90 focus:outline-none focus:ring-2 focus:ring-brand-purple transition-colors duration-200" aria-label="Download Word document">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Download Word
+                                    </button>
+                                    <button id="downloadPdf" class="hidden inline-flex items-center px-4 py-2 bg-brand-orange text-white font-semibold rounded-lg hover:bg-brand-orange/90 focus:outline-none focus:ring-2 focus:ring-brand-orange transition-colors duration-200" aria-label="Download PDF document">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        Download PDF
+                                    </button>
+                                    <a id="openGdocs" class="hidden inline-flex items-center px-4 py-2 bg-brand-sky text-white font-semibold rounded-lg hover:bg-brand-sky/90 focus:outline-none focus:ring-2 focus:ring-brand-sky transition-colors duration-200" target="_blank" rel="noopener noreferrer" aria-label="Open Google Docs document">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        Open in Google Docs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <footer class="text-center mt-12 text-tertiary text-sm font-light">
-            <p>Markdown to Word/PDF Converter v1.0.0</p>
-            <p class="mt-2">Powered by Flask, Pandoc, and WeasyPrint</p>
-        </footer>
-    </div>
+    <!-- Footer -->
+    <footer class="mt-12 bg-white border-t-2 border-brand-aqua">
+        <div class="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-gray-600 font-light">
+                &copy; 2025 Markdown Converter. Files are processed securely and deleted automatically.
+            </p>
+        </div>
+    </footer>
 
-    <script>
-        // Simple client-side JavaScript for the converter
-        const fileInput = document.getElementById('file-input');
-        const convertBtn = document.getElementById('convert-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const errorResetBtn = document.getElementById('error-reset-btn');
-        let selectedFile = null;
-
-        // File selection handler
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                selectedFile = file;
-                document.getElementById('filename').textContent = file.name;
-                document.getElementById('filesize').textContent = formatFileSize(file.size);
-                document.getElementById('file-info').classList.remove('hidden');
-                convertBtn.disabled = false;
-            }
-        });
-
-        // Convert button handler
-        convertBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-
-            const format = document.querySelector('input[name="format"]:checked').value;
-
-            showSection('progress');
-
-            try {
-                const formData = new FormData();
-                formData.append('file', selectedFile);
-                formData.append('format', format);
-
-                const response = await fetch('/api/convert', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Conversion failed');
-                }
-
-                // Check if response is JSON or file
-                const contentType = response.headers.get('content-type');
-
-                if (contentType && contentType.includes('application/json')) {
-                    // Both formats - show download links
-                    const result = await response.json();
-                    showDownloadLinks(result);
-                } else {
-                    // Single format - trigger download
-                    const blob = await response.blob();
-                    const filename = selectedFile.name.replace(/\.[^/.]+$/, '') + '.' + format;
-                    downloadBlob(blob, filename);
-                    showSuccess('File downloaded successfully!');
-                }
-            } catch (error) {
-                showError(error.message);
-            }
-        });
-
-        // Reset button handlers
-        resetBtn.addEventListener('click', reset);
-        errorResetBtn.addEventListener('click', reset);
-
-        function showSection(section) {
-            document.getElementById('upload-section').classList.add('hidden');
-            document.getElementById('progress-section').classList.add('hidden');
-            document.getElementById('download-section').classList.add('hidden');
-            document.getElementById('error-section').classList.add('hidden');
-            document.getElementById(section + '-section').classList.remove('hidden');
-        }
-
-        function showDownloadLinks(result) {
-            const linksContainer = document.getElementById('download-links');
-            linksContainer.innerHTML = '';
-
-            if (result.formats.docx) {
-                const docxLink = createDownloadButton('Word Document', result.formats.docx);
-                linksContainer.appendChild(docxLink);
-            }
-
-            if (result.formats.pdf) {
-                const pdfLink = createDownloadButton('PDF Document', result.formats.pdf);
-                linksContainer.appendChild(pdfLink);
-            }
-
-            showSection('download');
-        }
-
-        function createDownloadButton(label, format) {
-            const button = document.createElement('a');
-            button.href = format.download_url;
-            button.className = 'block bg-primary text-white py-3 px-6 rounded-lg font-semibold text-center hover:bg-opacity-90 transition shadow-md';
-            button.textContent = `Download ${label} (${format.size_formatted})`;
-            return button;
-        }
-
-        function downloadBlob(blob, filename) {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        }
-
-        function showSuccess(message) {
-            // For single file downloads
-            setTimeout(() => {
-                alert(message);
-                reset();
-            }, 500);
-        }
-
-        function showError(message) {
-            document.getElementById('error-message').textContent = message;
-            showSection('error');
-        }
-
-        function reset() {
-            selectedFile = null;
-            fileInput.value = '';
-            document.getElementById('file-info').classList.add('hidden');
-            convertBtn.disabled = true;
-            showSection('upload');
-        }
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-        }
-    </script>
+    <!-- JavaScript -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -35,11 +35,29 @@ class Config:
     # Logging
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
 
+    # OAuth2 configuration
+    GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')
+    GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET')
+    GOOGLE_CLOUD_PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT_ID')
+
+    # Flask-Dance settings
+    OAUTHLIB_RELAX_TOKEN_SCOPE = True  # Allow scope flexibility
+    OAUTHLIB_INSECURE_TRANSPORT = False  # HTTPS only in production
+
+    # Session cookie security
+    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
+    SESSION_COOKIE_SECURE = True  # HTTPS only (enforced in production)
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+    SESSION_PERMANENT = False  # Session expires when browser closes
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour if session made permanent
+
 
 class DevelopmentConfig(Config):
     """Development environment configuration"""
     DEBUG = True
     LOG_LEVEL = 'DEBUG'
+    SESSION_COOKIE_SECURE = False  # Allow HTTP for localhost
+    OAUTHLIB_INSECURE_TRANSPORT = True  # Allow HTTP OAuth for local testing
 
 
 class ProductionConfig(Config):
