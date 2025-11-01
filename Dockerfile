@@ -54,7 +54,7 @@ FROM base
 
 # Create non-root user for security
 RUN useradd -m -u 1000 -s /bin/bash appuser && \
-    mkdir -p /app /tmp/converted && \
+    mkdir -p /app /app/templates /tmp/converted && \
     chown -R appuser:appuser /app /tmp/converted
 
 WORKDIR /app
