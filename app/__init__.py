@@ -215,6 +215,11 @@ def create_app(config_name='default'):
         """Serve the main application page"""
         return send_from_directory(app.static_folder, 'index.html')
 
+    @app.route('/favicon.ico')
+    def favicon():
+        """Serve favicon"""
+        return send_from_directory(app.static_folder, 'favicon.ico', mimetype='image/x-icon')
+
     @app.route('/<path:path>')
     def static_files(path):
         """Serve other static files"""
