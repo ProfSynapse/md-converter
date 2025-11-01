@@ -202,9 +202,9 @@
         <div id="uploadScreen" class="bg-white rounded-lg shadow-md overflow-hidden screen-transition">
             <div class="p-4 sm:p-6">
                 <!-- Two Column Layout - 4/5 upload, 1/5 icons -->
-                <div class="grid grid-cols-1 xl:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <!-- Left Column: Drop Zone (4/5 width on desktop) -->
-                    <div class="xl:col-span-4">
+                    <div class="md:col-span-4">
                         <div id="dropZone" class="h-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200 flex flex-col justify-center min-h-[280px]" tabindex="0" role="button" aria-label="Upload markdown file - click or drag and drop">
                             <input type="file" id="fileInput" accept=".md,.markdown,.txt" class="hidden" aria-label="File input" />
 
@@ -233,13 +233,13 @@
                     </div>
 
                     <!-- Right Column: Format Icons (1/5 width on desktop, stacked) -->
-                    <div class="xl:col-span-1">
+                    <div class="md:col-span-1">
                         <fieldset class="h-full flex flex-col justify-center">
                             <legend class="sr-only">Select output formats</legend>
 
-                            <div class="flex flex-col gap-2">
+                            <div class="flex md:flex-col flex-row gap-2 justify-center">
                                 <!-- DOCX Format Card - Icon Only -->
-                                <label class="relative flex items-center justify-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-purple hover:shadow-md transition-all duration-200 peer-checked:border-brand-purple peer-checked:bg-brand-purple/5 focus-within:ring-2 focus-within:ring-brand-purple focus-within:ring-offset-2">
+                                <label class="relative flex items-center justify-center aspect-square p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-purple hover:shadow-md transition-all duration-200 peer-checked:border-brand-purple peer-checked:bg-brand-purple/5 focus-within:ring-2 focus-within:ring-brand-purple focus-within:ring-offset-2">
                                     <input
                                         type="checkbox"
                                         name="formats"
@@ -260,7 +260,7 @@
                                 </label>
 
                                 <!-- PDF Format Card - Icon Only -->
-                                <label class="relative flex items-center justify-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-orange hover:shadow-md transition-all duration-200 peer-checked:border-brand-orange peer-checked:bg-brand-orange/5 focus-within:ring-2 focus-within:ring-brand-orange focus-within:ring-offset-2">
+                                <label class="relative flex items-center justify-center aspect-square p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-orange hover:shadow-md transition-all duration-200 peer-checked:border-brand-orange peer-checked:bg-brand-orange/5 focus-within:ring-2 focus-within:ring-brand-orange focus-within:ring-offset-2">
                                     <input
                                         type="checkbox"
                                         name="formats"
@@ -281,7 +281,7 @@
                                 </label>
 
                                 <!-- Google Docs Format Card - Icon Only -->
-                                <label class="relative flex items-center justify-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-sky hover:shadow-md transition-all duration-200 peer-checked:border-brand-sky peer-checked:bg-brand-sky/5 focus-within:ring-2 focus-within:ring-brand-sky focus-within:ring-offset-2" id="gdocs-card">
+                                <label class="relative flex items-center justify-center aspect-square p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-sky hover:shadow-md transition-all duration-200 peer-checked:border-brand-sky peer-checked:bg-brand-sky/5 focus-within:ring-2 focus-within:ring-brand-sky focus-within:ring-offset-2" id="gdocs-card">
                                     <input
                                         type="checkbox"
                                         name="formats"
