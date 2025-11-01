@@ -12,7 +12,8 @@
       "WebSearch",
       "WebFetch(domain:developers.google.com)",
       "WebFetch(domain:dev.to)",
-      "WebFetch(domain:pypi.org)"
+      "WebFetch(domain:pypi.org)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

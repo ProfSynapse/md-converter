@@ -147,6 +147,14 @@ def create_app(config_name='default'):
             health_status['diagnostics']['weasyprint_error'] = error_detail
             is_healthy = False
 
+        # Check OAuth configuration
+        health_status['oauth'] = {
+            'configured': bool(app.config.get('GOOGLE_OAUTH_CLIENT_ID') and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')),
+            'client_id_present': bool(app.config.get('GOOGLE_OAUTH_CLIENT_ID')),
+            'client_secret_present': bool(app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')),
+            'blueprints_registered': list(app.blueprints.keys())
+        }
+
         # Check filesystem permissions
         try:
             converted_folder = app.config.get('CONVERTED_FOLDER', '/tmp/converted')
