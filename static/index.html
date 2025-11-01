@@ -201,10 +201,10 @@
         <!-- STAGE 1: Upload & Configure Screen -->
         <div id="uploadScreen" class="bg-white rounded-lg shadow-md overflow-hidden screen-transition">
             <div class="p-4 sm:p-6">
-                <!-- Two Column Layout -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Two Column Layout - Wider breakpoint for side-by-side -->
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
                     <!-- Left Column: Drop Zone (2/3 width on desktop) -->
-                    <div class="lg:col-span-2">
+                    <div class="xl:col-span-2">
                         <div id="dropZone" class="h-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200 flex flex-col justify-center min-h-[280px]" tabindex="0" role="button" aria-label="Upload markdown file - click or drag and drop">
                             <input type="file" id="fileInput" accept=".md,.markdown,.txt" class="hidden" aria-label="File input" />
 
@@ -233,96 +233,79 @@
                     </div>
 
                     <!-- Right Column: Format Selection (1/3 width on desktop, stacked) -->
-                    <div class="lg:col-span-1">
-                        <fieldset class="h-full flex flex-col">
-                            <legend class="block text-sm font-semibold text-brand-cello mb-2">
-                                Select Format(s)
-                            </legend>
+                    <div class="xl:col-span-1">
+                        <fieldset class="h-full flex flex-col justify-center">
+                            <legend class="sr-only">Select output formats</legend>
 
-                            <div class="flex flex-col gap-3 flex-1">
-                                <!-- DOCX Format Card -->
-                        <label class="relative flex flex-col items-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-purple hover:shadow-md transition-all duration-200 peer-checked:border-brand-purple peer-checked:bg-brand-purple/5 focus-within:ring-2 focus-within:ring-brand-purple focus-within:ring-offset-2">
-                            <input
-                                type="checkbox"
-                                name="formats"
-                                value="docx"
-                                class="peer sr-only format-checkbox"
-                                aria-labelledby="docx-label"
-                            >
+                            <div class="flex flex-col gap-3">
+                                <!-- DOCX Format Card - Icon Only -->
+                                <label class="relative flex items-center justify-center p-4 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-purple hover:shadow-md transition-all duration-200 peer-checked:border-brand-purple peer-checked:bg-brand-purple/5 focus-within:ring-2 focus-within:ring-brand-purple focus-within:ring-offset-2">
+                                    <input
+                                        type="checkbox"
+                                        name="formats"
+                                        value="docx"
+                                        class="peer sr-only format-checkbox"
+                                        aria-label="Microsoft Word format"
+                                    >
 
-                            <!-- Icon -->
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg" alt="Word" class="h-10 w-10 mb-2" />
+                                    <!-- Icon -->
+                                    <img src="https://img.icons8.com/color/96/microsoft-word-2019--v2.png" alt="Word" class="h-12 w-12" />
 
-                            <!-- Label -->
-                            <span id="docx-label" class="text-sm font-semibold text-brand-cello">
-                                Word
-                            </span>
+                                    <!-- Checkmark indicator -->
+                                    <span class="absolute top-2 right-2 flex items-center justify-center w-6 h-6 bg-brand-purple rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                </label>
 
-                            <!-- Checkmark indicator -->
-                            <span class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 bg-brand-purple rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
-                                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                </svg>
-                            </span>
-                        </label>
+                                <!-- PDF Format Card - Icon Only -->
+                                <label class="relative flex items-center justify-center p-4 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-orange hover:shadow-md transition-all duration-200 peer-checked:border-brand-orange peer-checked:bg-brand-orange/5 focus-within:ring-2 focus-within:ring-brand-orange focus-within:ring-offset-2">
+                                    <input
+                                        type="checkbox"
+                                        name="formats"
+                                        value="pdf"
+                                        class="peer sr-only format-checkbox"
+                                        aria-label="PDF format"
+                                    >
 
-                        <!-- PDF Format Card -->
-                        <label class="relative flex flex-col items-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-orange hover:shadow-md transition-all duration-200 peer-checked:border-brand-orange peer-checked:bg-brand-orange/5 focus-within:ring-2 focus-within:ring-brand-orange focus-within:ring-offset-2">
-                            <input
-                                type="checkbox"
-                                name="formats"
-                                value="pdf"
-                                class="peer sr-only format-checkbox"
-                                aria-labelledby="pdf-label"
-                            >
+                                    <!-- Icon -->
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" class="h-12 w-12" />
 
-                            <!-- Icon -->
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" class="h-10 w-10 mb-2" />
+                                    <!-- Checkmark indicator -->
+                                    <span class="absolute top-2 right-2 flex items-center justify-center w-6 h-6 bg-brand-orange rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                </label>
 
-                            <!-- Label -->
-                            <span id="pdf-label" class="text-sm font-semibold text-brand-cello">
-                                PDF
-                            </span>
+                                <!-- Google Docs Format Card - Icon Only -->
+                                <label class="relative flex items-center justify-center p-4 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-sky hover:shadow-md transition-all duration-200 peer-checked:border-brand-sky peer-checked:bg-brand-sky/5 focus-within:ring-2 focus-within:ring-brand-sky focus-within:ring-offset-2" id="gdocs-card">
+                                    <input
+                                        type="checkbox"
+                                        name="formats"
+                                        value="gdocs"
+                                        class="peer sr-only format-checkbox"
+                                        aria-label="Google Docs format"
+                                        id="gdocs-checkbox"
+                                    >
 
-                            <!-- Checkmark indicator -->
-                            <span class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 bg-brand-orange rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
-                                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                </svg>
-                            </span>
-                        </label>
+                                    <!-- Icon -->
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Google Docs" class="h-12 w-12" />
 
-                        <!-- Google Docs Format Card -->
-                        <label class="relative flex flex-col items-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-sky hover:shadow-md transition-all duration-200 peer-checked:border-brand-sky peer-checked:bg-brand-sky/5 focus-within:ring-2 focus-within:ring-brand-sky focus-within:ring-offset-2" id="gdocs-card">
-                            <input
-                                type="checkbox"
-                                name="formats"
-                                value="gdocs"
-                                class="peer sr-only format-checkbox"
-                                aria-labelledby="gdocs-label"
-                                id="gdocs-checkbox"
-                            >
+                                    <!-- Sign-in required badge (small overlay) -->
+                                    <span class="hidden absolute bottom-1 text-xs text-amber-600 font-semibold bg-white px-1.5 py-0.5 rounded" id="gdocs-auth-badge">
+                                        Sign in
+                                    </span>
 
-                            <!-- Icon -->
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Google Docs" class="h-10 w-10 mb-2" />
-
-                            <!-- Label -->
-                            <span id="gdocs-label" class="text-sm font-semibold text-brand-cello">
-                                Google Docs
-                            </span>
-
-                            <!-- Sign-in required badge -->
-                            <span class="hidden mt-1 text-xs text-amber-600 font-medium" id="gdocs-auth-badge">
-                                Sign in required
-                            </span>
-
-                            <!-- Checkmark indicator -->
-                            <span class="absolute top-2 right-2 flex items-center justify-center w-5 h-5 bg-brand-sky rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
-                                <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                </svg>
-                            </span>
-                        </label>
+                                    <!-- Checkmark indicator -->
+                                    <span class="absolute top-2 right-2 flex items-center justify-center w-6 h-6 bg-brand-sky rounded-full opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                </label>
                             </div>
                         </fieldset>
                     </div>
@@ -398,40 +381,37 @@
 
                 <!-- Download Cards - Reusing format card design -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                    <!-- Word Download Card -->
-                    <button id="downloadDocx" class="hidden flex flex-col items-center p-4 bg-brand-purple text-white border-2 border-brand-purple rounded-lg hover:bg-brand-purple/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2" aria-label="Download Word document">
+                    <!-- Word Download Card - Icon Only -->
+                    <button id="downloadDocx" class="hidden flex items-center justify-center p-5 bg-brand-purple text-white border-2 border-brand-purple rounded-lg hover:bg-brand-purple/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2" aria-label="Download Word document">
                         <!-- Icon with download arrow -->
                         <div class="relative">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg" alt="Word" class="h-12 w-12 mb-2" />
-                            <svg class="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <img src="https://img.icons8.com/color/96/microsoft-word-2019--v2.png" alt="Word" class="h-14 w-14" />
+                            <svg class="absolute -bottom-1 -right-1 h-6 w-6 bg-white rounded-full p-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 10v6m0 0l-3-3m3 3l3-3" />
                             </svg>
                         </div>
-                        <span class="text-sm font-semibold">Download Word</span>
                     </button>
 
-                    <!-- PDF Download Card -->
-                    <button id="downloadPdf" class="hidden flex flex-col items-center p-4 bg-brand-orange text-white border-2 border-brand-orange rounded-lg hover:bg-brand-orange/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2" aria-label="Download PDF document">
+                    <!-- PDF Download Card - Icon Only -->
+                    <button id="downloadPdf" class="hidden flex items-center justify-center p-5 bg-brand-orange text-white border-2 border-brand-orange rounded-lg hover:bg-brand-orange/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2" aria-label="Download PDF document">
                         <!-- Icon with download arrow -->
                         <div class="relative">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" class="h-12 w-12 mb-2" />
-                            <svg class="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" class="h-14 w-14" />
+                            <svg class="absolute -bottom-1 -right-1 h-6 w-6 bg-white rounded-full p-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 10v6m0 0l-3-3m3 3l3-3" />
                             </svg>
                         </div>
-                        <span class="text-sm font-semibold">Download PDF</span>
                     </button>
 
-                    <!-- Google Docs Open Card -->
-                    <a id="openGdocs" class="hidden flex flex-col items-center p-4 bg-brand-sky text-white border-2 border-brand-sky rounded-lg hover:bg-brand-sky/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-sky focus:ring-offset-2" target="_blank" rel="noopener noreferrer" aria-label="Open Google Docs document">
+                    <!-- Google Docs Open Card - Icon Only -->
+                    <a id="openGdocs" class="hidden flex items-center justify-center p-5 bg-brand-sky text-white border-2 border-brand-sky rounded-lg hover:bg-brand-sky/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-sky focus:ring-offset-2" target="_blank" rel="noopener noreferrer" aria-label="Open Google Docs document">
                         <!-- Icon with open arrow -->
                         <div class="relative">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Google Docs" class="h-12 w-12 mb-2" />
-                            <svg class="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Google Docs" class="h-14 w-14" />
+                            <svg class="absolute -bottom-1 -right-1 h-6 w-6 bg-white rounded-full p-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
                             </svg>
                         </div>
-                        <span class="text-sm font-semibold">Open in Docs</span>
                     </a>
                 </div>
 
