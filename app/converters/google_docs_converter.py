@@ -257,44 +257,25 @@ class GoogleDocsConverter:
         to basic text insertion.
         """
         requests = []
+        start_index = 1
 
         # Add front matter as document header
         if metadata:
-            front_matter_requests = self._format_front_matter(metadata)
+            front_matter_requests, final_index = self._format_front_matter(metadata)
             requests.extend(front_matter_requests)
+            start_index = final_index
 
         # Convert markdown to API requests
-        if MARKGDOC_AVAILABLE:
-            # Use markgdoc library
-            self.logger.debug("Using markgdoc for conversion")
-            try:
-                # markgdoc has convert_to_google_docs but we need just the requests
-                # so we'll use our custom parser which is more reliable
-                md_requests = self._parse_markdown_to_requests(markdown_body)
-                if isinstance(md_requests, list):
-                    requests.extend(md_requests)
-                else:
-                    requests.append(md_requests)
-            except Exception as e:
-                self.logger.warning(f"Markdown parsing failed: {e}")
-                # Fall back to basic text insertion
-                result = self._create_basic_text_request(markdown_body)
-                if isinstance(result, list):
-                    requests.extend(result)
-                else:
-                    requests.append(result)
-        else:
-            # Use custom markdown parser
-            self.logger.debug("Using custom markdown parser")
-            result = self._parse_markdown_to_requests(markdown_body)
-            if isinstance(result, list):
-                requests.extend(result)
-            else:
-                requests.append(result)
+        self.logger.debug("Using custom markdown parser")
+        md_requests = self._parse_markdown_to_requests(markdown_body, start_index)
+        if isinstance(md_requests, list):
+            requests.extend(md_requests)
+        elif md_requests:
+            requests.append(md_requests)
 
         return requests
 
-    def _format_front_matter(self, metadata: Dict) -> list:
+    def _format_front_matter(self, metadata: Dict) -> tuple:
         """
         Format front matter as document header.
 
@@ -302,7 +283,7 @@ class GoogleDocsConverter:
             metadata: Front matter key-value pairs
 
         Returns:
-            list: Docs API requests for front matter section
+            tuple: (list of Docs API requests, final index position)
 
         Creates a styled document information section at top of document.
         """
@@ -378,10 +359,11 @@ class GoogleDocsConverter:
                 'text': '\n'
             }
         })
+        current_index += 1
 
-        return requests
+        return requests, current_index
 
-    def _parse_markdown_to_requests(self, text: str):
+    def _parse_markdown_to_requests(self, text: str, start_index: int = 1):
         """
         Parse markdown and convert to Google Docs API requests.
 
@@ -390,6 +372,7 @@ class GoogleDocsConverter:
 
         Args:
             text: Markdown text content to parse
+            start_index: Starting index position in document (default: 1)
 
         Returns:
             list: List of Google Docs API request dicts
@@ -397,7 +380,7 @@ class GoogleDocsConverter:
         import re
 
         requests = []
-        current_index = 1
+        current_index = start_index
 
         # Split into lines and process
         lines = text.split('\n')

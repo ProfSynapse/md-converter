@@ -79,7 +79,10 @@ When delegating tasks, ensure specialists read relevant existing documentation b
 
 ## Project Overview
 
-A Flask web application that converts Markdown files with YAML front matter to professionally formatted Word (DOCX) and PDF documents. The application uses Pandoc for Word conversion and WeasyPrint for PDF generation with automatic page numbering.
+A Flask web application that converts Markdown files with YAML front matter to professionally formatted Word (DOCX), PDF, and Google Docs documents. The application uses:
+- **Pandoc** for Word (DOCX) conversion
+- **WeasyPrint** for PDF generation with automatic page numbering
+- **Google Docs API** for creating formatted Google Docs in user's Drive via OAuth2
 
 ## Development Commands
 
@@ -131,22 +134,31 @@ railway open
 ### Testing API
 
 ```bash
-# Convert to both formats
+# Convert to multiple formats (new style)
+curl -X POST http://localhost:8080/api/convert \
+  -F "file=@document.md" \
+  -F "formats=docx" \
+  -F "formats=pdf" \
+  -F "formats=gdocs"
+
+# Convert to legacy "both" formats (DOCX + PDF)
 curl -X POST http://localhost:8080/api/convert \
   -F "file=@document.md" \
   -F "format=both"
 
-# Convert to Word only
+# Convert to single format (direct file download)
 curl -X POST http://localhost:8080/api/convert \
   -F "file=@document.md" \
   -F "format=docx" \
   --output document.docx
 
-# Convert to PDF only
+# Convert to Google Docs (requires authentication)
+# First: Sign in at http://localhost:8080/login/google
+# Then:
 curl -X POST http://localhost:8080/api/convert \
   -F "file=@document.md" \
-  -F "format=pdf" \
-  --output document.pdf
+  -F "formats=gdocs" \
+  -H "Cookie: session=<your-session-cookie>"
 
 # Download converted file
 curl http://localhost:8080/api/download/{job_id}/docx --output document.docx
@@ -171,12 +183,21 @@ Environment is determined by the `FLASK_ENV` environment variable (defaults to '
 
 1. **File Upload** → `app/api/routes.py::convert()`
 2. **Validation** → `app/api/validators.py` (file type, size, encoding, content)
-3. **Job Creation** → `app/utils/file_handler.py::generate_job_id()` creates UUID-based directory
-4. **Conversion** → `app/converters/markdown_converter.py::MarkdownConverter`
-   - Parses YAML front matter with `python-frontmatter`
-   - Converts to DOCX via `pypandoc` (uses system Pandoc)
-   - Converts to PDF via `weasyprint` with custom CSS styling
-5. **Response** → JSON with download URLs (format=both) or direct file download (format=docx/pdf)
+3. **Authentication Check** → If Google Docs format requested, verify user is authenticated via Flask-Dance
+4. **Job Creation** → `app/utils/file_handler.py::generate_job_id()` creates UUID-based directory
+5. **Conversion** → Format-specific converters:
+   - **DOCX**: `app/converters/markdown_converter.py::MarkdownConverter.convert_to_docx()`
+     - Parses YAML front matter with `python-frontmatter`
+     - Converts to DOCX via `pypandoc` (uses system Pandoc)
+   - **PDF**: `app/converters/markdown_converter.py::MarkdownConverter.convert_to_pdf()`
+     - Converts markdown to HTML with Python's `markdown` library
+     - Renders PDF via `weasyprint` with custom CSS styling
+   - **Google Docs**: `app/converters/google_docs_converter.py::GoogleDocsConverter.convert()`
+     - Extracts OAuth2 credentials from Flask-Dance session
+     - Creates document in user's Google Drive
+     - Converts markdown to Docs API requests
+     - Applies formatting via batchUpdate API
+6. **Response** → JSON with download URLs and/or Google Docs links
 
 ### File Management
 
@@ -206,8 +227,12 @@ The `MarkdownConverter` class handles all document conversion logic:
 ### `app/api/routes.py`
 
 Three main endpoints:
-- `POST /api/convert`: Main conversion endpoint (handles both single and dual format conversions)
-- `GET /api/download/<job_id>/<format>`: Download converted files
+- `POST /api/convert`: Main conversion endpoint with multi-format support
+  - Accepts `formats[]` array parameter (new style) or `format` single parameter (legacy)
+  - Returns JSON with download URLs for DOCX/PDF, webViewLink for Google Docs
+  - Checks authentication for Google Docs format
+  - Backward compatible with legacy single-format direct file download
+- `GET /api/download/<job_id>/<format>`: Download converted files (DOCX/PDF only)
 - `POST /api/cleanup`: Manual cleanup trigger (TODO: add authentication)
 
 ### `app/utils/file_handler.py`
@@ -221,6 +246,41 @@ File operations with security focus:
 ### `app/utils/security.py`
 
 Security utilities for filename sanitization and extension validation.
+
+### `app/converters/google_docs_converter.py`
+
+The `GoogleDocsConverter` class handles Google Docs conversion:
+
+- **Document creation**: Creates empty Google Doc via Docs API v1
+- **Markdown parsing**: Custom parser converts markdown to Docs API requests
+- **Formatting support**: Headings (H1-H6), bold, italic, paragraphs, line breaks
+- **Front matter**: Formatted as styled document header section
+- **Authentication**: Uses OAuth2 credentials from Flask-Dance session
+- **Output**: Returns shareable webViewLink to document in user's Drive
+
+### `app/auth/routes.py`
+
+OAuth2 authentication endpoints:
+- `GET /auth/status`: Check authentication status (AJAX endpoint for frontend)
+- `GET /auth/logout`: Sign out and clear session
+- `GET /auth/profile`: User profile info (testing/debugging)
+
+Flask-Dance provides automatic routes:
+- `GET /login/google`: Initiate OAuth2 flow with Google
+- `GET /login/google/authorized`: OAuth callback handler
+
+### `app/utils/oauth_helpers.py`
+
+OAuth2 helper functions:
+- `get_google_credentials()`: Extract OAuth2 credentials from Flask-Dance session
+- `is_authenticated()`: Check if user is signed in
+- `check_auth_required(formats)`: Validate auth requirements for requested formats
+
+### `app/utils/google_services.py`
+
+Google API service builders:
+- `build_google_services(credentials)`: Create Docs API v1 and Drive API v3 service clients
+- Service caching for performance
 
 ## Important Patterns
 
@@ -239,6 +299,18 @@ tags: [markdown, converter]
 Front matter is parsed in `MarkdownConverter.parse_markdown()` and formatted differently for each output:
 - **DOCX**: Formatted as markdown header section
 - **PDF**: Rendered as styled HTML "Document Information" box
+- **Google Docs**: Rendered as TITLE and SUBTITLE paragraph styles at document start
+
+### OAuth2 Authentication Flow
+
+Google Docs conversion requires user authentication:
+1. User clicks "Sign in with Google" → Redirects to `/login/google` (Flask-Dance route)
+2. Google OAuth consent screen → User approves permissions
+3. Callback to `/login/google/authorized` → Flask-Dance stores tokens in encrypted session
+4. Frontend checks `/auth/status` → Updates UI to enable Google Docs tile
+5. User selects Google Docs format → Backend verifies authentication
+6. OAuth tokens extracted via `get_google_credentials()` → Creates Docs/Drive API clients
+7. Document created in user's Drive → Returns shareable link
 
 ### Conversion Error Handling
 
@@ -262,6 +334,13 @@ Comprehensive logging throughout:
 - **File size limits**: Enforced via Flask's `MAX_CONTENT_LENGTH` config
 - **Encoding validation**: UTF-8 validation prevents binary file exploits
 - **Binary content detection**: Checks for null bytes in content
+- **OAuth2 Security**:
+  - Session-only token storage (no database persistence)
+  - Encrypted session cookies with httponly, secure, samesite flags
+  - HTTPS enforcement via ProxyFix middleware (Railway reverse proxy)
+  - Automatic token refresh on expiration
+  - No user data stored beyond session
+  - Minimal OAuth scopes (docs, drive.file, profile only)
 
 ## Environment Variables
 
@@ -271,8 +350,31 @@ Comprehensive logging throughout:
 | `LOG_LEVEL` | `INFO` | Logging level: DEBUG/INFO/WARNING/ERROR |
 | `MAX_FILE_SIZE` | `10485760` | Max upload size in bytes (10MB) |
 | `PORT` | `8080` | HTTP server port |
-| `SECRET_KEY` | Generated | Flask secret key (set in production) |
+| `SECRET_KEY` | Generated | Flask secret key (set in production) **REQUIRED FOR OAUTH** |
 | `CONVERTED_FOLDER` | `/tmp/converted` | Directory for converted files |
+| `GOOGLE_OAUTH_CLIENT_ID` | None | Google OAuth2 client ID (required for Google Docs) |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | None | Google OAuth2 client secret (required for Google Docs) **SEAL IN RAILWAY** |
+| `GOOGLE_CLOUD_PROJECT_ID` | None | Google Cloud project ID (optional) |
+| `OAUTHLIB_RELAX_TOKEN_SCOPE` | `true` | Allow OAuth scope flexibility |
+| `OAUTHLIB_INSECURE_TRANSPORT` | `false` | Allow HTTP OAuth (development only) |
+
+### Google OAuth Setup
+
+To enable Google Docs conversion:
+
+1. **Create Google Cloud Project**: https://console.cloud.google.com
+2. **Enable APIs**: Google Docs API v1, Google Drive API v3
+3. **Create OAuth Client**:
+   - Type: Web application
+   - Authorized redirect URI: `https://your-domain.com/login/google/authorized`
+4. **Set Environment Variables** in Railway:
+   - `GOOGLE_OAUTH_CLIENT_ID`: Your client ID
+   - `GOOGLE_OAUTH_CLIENT_SECRET`: Your client secret (SEAL THIS!)
+   - `SECRET_KEY`: Random 64-char hex string for session encryption (SEAL THIS!)
+5. **Add Test Users** (during development): In OAuth consent screen
+6. **Publish App** (for production): Submit for Google verification
+
+See `OAUTH_SETUP.md` for detailed instructions.
 
 ## Deployment Architecture
 
