@@ -54,10 +54,10 @@ def create_app(config_name='default'):
                 'email',
                 'profile'
             ],
-            redirect_to='index',  # Redirect to home after login
+            offline=True,  # Request refresh token
         )
-        app.register_blueprint(google_bp, url_prefix='/auth/google')
-        app.logger.info('Google OAuth blueprint registered')
+        app.register_blueprint(google_bp, url_prefix='/login/google')
+        app.logger.info(f'Google OAuth blueprint registered at /login/google')
     else:
         app.logger.warning('Google OAuth not configured - Google Docs conversion disabled')
 

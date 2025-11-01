@@ -121,7 +121,7 @@ def convert():
                     'AUTH_REQUIRED',
                     'Google Docs conversion requires authentication. Please sign in.',
                     401,
-                    {'auth_url': '/auth/google/login'}
+                    {'auth_url': '/login/google'}
                 )
                 return jsonify(error), 401
 

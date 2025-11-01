@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gdocsCheckbox.disabled && !isAuthenticated) {
       e.preventDefault();
       if (confirm('Sign in with Google to enable Google Docs conversion?')) {
-        window.location.href = '/auth/google/login';
+        window.location.href = '/login/google';
       }
     }
   });
