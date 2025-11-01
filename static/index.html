@@ -201,38 +201,46 @@
         <!-- STAGE 1: Upload & Configure Screen -->
         <div id="uploadScreen" class="bg-white rounded-lg shadow-md overflow-hidden screen-transition">
             <div class="p-4 sm:p-6">
-                <!-- Drop Zone - Compressed -->
-                <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200" tabindex="0" role="button" aria-label="Upload markdown file - click or drag and drop">
-                    <input type="file" id="fileInput" accept=".md,.markdown,.txt" class="hidden" aria-label="File input" />
+                <!-- Two Column Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Left Column: Drop Zone (2/3 width on desktop) -->
+                    <div class="lg:col-span-2">
+                        <div id="dropZone" class="h-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200 flex flex-col justify-center min-h-[280px]" tabindex="0" role="button" aria-label="Upload markdown file - click or drag and drop">
+                            <input type="file" id="fileInput" accept=".md,.markdown,.txt" class="hidden" aria-label="File input" />
 
-                    <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
 
-                    <p class="mt-2 text-base font-medium text-gray-900">
-                        Drop your markdown file here or click to browse
-                    </p>
-                    <p class="mt-1 text-xs text-gray-400">
-                        .md, .markdown, .txt (max 10MB)
-                    </p>
+                            <p class="mt-4 text-base font-medium text-gray-900">
+                                Drop your markdown file here
+                            </p>
+                            <p class="mt-1 text-sm text-gray-500">
+                                or click to browse
+                            </p>
+                            <p class="mt-2 text-xs text-gray-400">
+                                .md, .markdown, .txt (max 10MB)
+                            </p>
 
-                    <!-- Selected File Display -->
-                    <div id="fileNameDisplay" class="hidden mt-3 inline-flex items-center px-3 py-1.5 bg-brand-aqua/10 text-brand-aqua rounded-full">
-                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                        </svg>
-                        <span id="fileName" class="text-sm font-semibold"></span>
+                            <!-- Selected File Display -->
+                            <div id="fileNameDisplay" class="hidden mt-4 inline-flex items-center px-3 py-1.5 bg-brand-aqua/10 text-brand-aqua rounded-full">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                </svg>
+                                <span id="fileName" class="text-sm font-semibold"></span>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Format Selection - Compressed -->
-                <fieldset class="mt-4">
-                    <legend class="block text-sm font-semibold text-brand-cello mb-2">
-                        Select Output Format(s)
-                    </legend>
+                    <!-- Right Column: Format Selection (1/3 width on desktop, stacked) -->
+                    <div class="lg:col-span-1">
+                        <fieldset class="h-full flex flex-col">
+                            <legend class="block text-sm font-semibold text-brand-cello mb-2">
+                                Select Format(s)
+                            </legend>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <!-- DOCX Format Card -->
+                            <div class="flex flex-col gap-3 flex-1">
+                                <!-- DOCX Format Card -->
                         <label class="relative flex flex-col items-center p-3 bg-white border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-purple hover:shadow-md transition-all duration-200 peer-checked:border-brand-purple peer-checked:bg-brand-purple/5 focus-within:ring-2 focus-within:ring-brand-purple focus-within:ring-offset-2">
                             <input
                                 type="checkbox"
@@ -243,10 +251,7 @@
                             >
 
                             <!-- Icon -->
-                            <svg class="h-8 w-8 mb-2 text-gray-400 peer-checked:text-brand-purple transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                <path d="M9 12h6M9 16h6M9 8h3" stroke="white" stroke-width="1" stroke-linecap="round"/>
-                            </svg>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg" alt="Word" class="h-10 w-10 mb-2" />
 
                             <!-- Label -->
                             <span id="docx-label" class="text-sm font-semibold text-brand-cello">
@@ -272,9 +277,7 @@
                             >
 
                             <!-- Icon -->
-                            <svg class="h-8 w-8 mb-2 text-gray-400 peer-checked:text-brand-orange transition-colors" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" class="h-10 w-10 mb-2" />
 
                             <!-- Label -->
                             <span id="pdf-label" class="text-sm font-semibold text-brand-cello">
@@ -301,9 +304,7 @@
                             >
 
                             <!-- Icon -->
-                            <svg class="h-8 w-8 mb-2 text-gray-400 peer-checked:text-brand-sky transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19H8V18H10V19M14,19H10V17H14V19M14,16H10V14H14V16M10,13H8V11H10V13M14,13H10V11H14V13Z" />
-                            </svg>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Google Docs" class="h-10 w-10 mb-2" />
 
                             <!-- Label -->
                             <span id="gdocs-label" class="text-sm font-semibold text-brand-cello">
@@ -322,11 +323,12 @@
                                 </svg>
                             </span>
                         </label>
+                            </div>
+                        </fieldset>
                     </div>
+                </div>
 
-                </fieldset>
-
-                <!-- Convert Button (Full Width) - Compact -->
+                <!-- Convert Button (Full Width) - Below both columns -->
                 <div class="mt-4">
                     <button id="convertBtn" disabled class="w-full px-6 py-3 bg-brand-aqua text-white text-base font-bold rounded-lg hover:bg-brand-aqua/90 focus:outline-none focus:ring-2 focus:ring-brand-aqua focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 shadow-md hover:shadow-lg" aria-label="Convert markdown file">
                         <span id="convertBtnText">Convert File</span>
@@ -400,10 +402,7 @@
                     <button id="downloadDocx" class="hidden flex flex-col items-center p-4 bg-brand-purple text-white border-2 border-brand-purple rounded-lg hover:bg-brand-purple/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-2" aria-label="Download Word document">
                         <!-- Icon with download arrow -->
                         <div class="relative">
-                            <svg class="h-10 w-10 mb-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                <path d="M9 12h6M9 16h6M9 8h3" stroke="white" stroke-width="1" stroke-linecap="round"/>
-                            </svg>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg" alt="Word" class="h-12 w-12 mb-2" />
                             <svg class="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 10v6m0 0l-3-3m3 3l3-3" />
                             </svg>
@@ -415,9 +414,7 @@
                     <button id="downloadPdf" class="hidden flex flex-col items-center p-4 bg-brand-orange text-white border-2 border-brand-orange rounded-lg hover:bg-brand-orange/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:ring-offset-2" aria-label="Download PDF document">
                         <!-- Icon with download arrow -->
                         <div class="relative">
-                            <svg class="h-10 w-10 mb-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" alt="PDF" class="h-12 w-12 mb-2" />
                             <svg class="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 10v6m0 0l-3-3m3 3l3-3" />
                             </svg>
@@ -429,9 +426,7 @@
                     <a id="openGdocs" class="hidden flex flex-col items-center p-4 bg-brand-sky text-white border-2 border-brand-sky rounded-lg hover:bg-brand-sky/90 hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-sky focus:ring-offset-2" target="_blank" rel="noopener noreferrer" aria-label="Open Google Docs document">
                         <!-- Icon with open arrow -->
                         <div class="relative">
-                            <svg class="h-10 w-10 mb-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19H8V18H10V19M14,19H10V17H14V19M14,16H10V14H14V16M10,13H8V11H10V13M14,13H10V11H14V13Z" />
-                            </svg>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Google_Docs_logo_%282014-2020%29.svg" alt="Google Docs" class="h-12 w-12 mb-2" />
                             <svg class="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
                             </svg>
