@@ -43,6 +43,37 @@ html {
   animation: slideUp 0.4s ease-out;
 }
 
+/* Popup Animations */
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutToBottom {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+#ctaPopup.popup-show {
+  animation: slideInFromBottom 0.5s ease-out;
+}
+
+#ctaPopup.popup-hide {
+  animation: slideOutToBottom 0.3s ease-in;
+}
+
 /* Loading spinner */
 @keyframes spin {
   to {
