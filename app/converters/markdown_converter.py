@@ -23,6 +23,8 @@ from datetime import datetime
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
 # Import WeasyPrint conditionally (only needed for PDF)
 try:
@@ -226,6 +228,9 @@ class MarkdownConverter:
                 extra_args=extra_args
             )
 
+            # Post-process: Fix table formatting (auto-fit columns, add borders)
+            self._fix_table_formatting(output_path)
+
             # Post-process: Add front matter to first page header
             if include_front_matter and metadata:
                 self._add_front_matter_to_header(output_path, metadata)
@@ -360,6 +365,84 @@ class MarkdownConverter:
 
         logger.info(f'Successfully converted to both formats')
         return docx_path, pdf_path
+
+    def _fix_table_formatting(self, docx_path: str) -> None:
+        """
+        Fix table formatting in DOCX to use auto-fit and proper borders.
+
+        Args:
+            docx_path: Path to the DOCX file to modify
+
+        This function:
+        - Sets tables to auto-fit content (evenly distributed columns)
+        - Adds borders around all table cells
+        """
+        try:
+            doc = Document(docx_path)
+
+            if not doc.tables:
+                logger.debug('No tables found in document')
+                return
+
+            for table in doc.tables:
+                tbl = table._element
+                tblPr = tbl.tblPr
+
+                # Remove existing width specifications on columns
+                # This allows Word to auto-calculate based on content
+                for row in table.rows:
+                    for cell in row.cells:
+                        # Remove cell width
+                        tcPr = cell._element.tcPr
+                        if tcPr is not None:
+                            # Remove tcW (cell width) elements
+                            for tcW in tcPr.findall(qn('w:tcW')):
+                                tcPr.remove(tcW)
+
+                # Set table layout to auto (auto-fit content)
+                tblLayout = tblPr.find(qn('w:tblLayout'))
+                if tblLayout is None:
+                    tblLayout = OxmlElement('w:tblLayout')
+                    tblPr.append(tblLayout)
+                tblLayout.set(qn('w:type'), 'autofit')
+
+                # Set table width to 100% of page width
+                tblW = tblPr.find(qn('w:tblW'))
+                if tblW is None:
+                    tblW = OxmlElement('w:tblW')
+                    tblPr.append(tblW)
+                tblW.set(qn('w:w'), '5000')
+                tblW.set(qn('w:type'), 'pct')
+
+                # Add table borders
+                tblBorders = tblPr.find(qn('w:tblBorders'))
+                if tblBorders is None:
+                    tblBorders = OxmlElement('w:tblBorders')
+                    tblPr.append(tblBorders)
+
+                # Define border style
+                border_attrs = {
+                    qn('w:val'): 'single',
+                    qn('w:sz'): '4',  # Border size (1/8 pt)
+                    qn('w:space'): '0',
+                    qn('w:color'): '000000'  # Black
+                }
+
+                # Add all borders (top, left, bottom, right, insideH, insideV)
+                for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+                    border = tblBorders.find(qn(f'w:{border_name}'))
+                    if border is None:
+                        border = OxmlElement(f'w:{border_name}')
+                        tblBorders.append(border)
+                    for attr, val in border_attrs.items():
+                        border.set(attr, val)
+
+            doc.save(docx_path)
+            logger.info(f'Fixed formatting for {len(doc.tables)} table(s)')
+
+        except Exception as e:
+            logger.warning(f'Failed to fix table formatting: {e}', exc_info=True)
+            # Don't raise - document is still valid, just without fixed tables
 
     def _add_front_matter_to_header(self, docx_path: str, metadata: Dict) -> None:
         """
