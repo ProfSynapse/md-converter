@@ -22,7 +22,9 @@
       "WebFetch(domain:stackoverflow.com)",
       "Bash(export DYLD_LIBRARY_PATH=/opt/homebrew/lib)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(pandoc:*)",
+      "WebFetch(domain:pandoc.org)"
     ],
     "deny": [],
     "ask": []

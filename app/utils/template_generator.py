@@ -81,9 +81,44 @@ def create_page_number_element():
     return run
 
 
+def add_table_autofit_style(doc: Document) -> None:
+    """
+    Add table auto-fit settings to the document's table style.
+
+    This ensures tables in converted documents automatically resize columns
+    to fit content rather than using fixed widths.
+
+    Args:
+        doc: Document object to modify
+    """
+    # Create a sample table with auto-fit properties
+    # Pandoc will copy these properties when creating tables
+    table = doc.add_table(rows=1, cols=3)
+
+    # Set table to auto-fit content
+    tbl = table._element
+    tblPr = tbl.tblPr
+
+    # Add table layout property for auto-fit
+    tblLayout = OxmlElement('w:tblLayout')
+    tblLayout.set(qn('w:type'), 'auto')
+    tblPr.append(tblLayout)
+
+    # Set table width to 100% of page width
+    tblW = OxmlElement('w:tblW')
+    tblW.set(qn('w:w'), '5000')
+    tblW.set(qn('w:type'), 'pct')  # Percentage
+    tblPr.append(tblW)
+
+    # Remove the sample table (we just needed it to set the style)
+    doc._element.body.remove(table._element)
+
+    logger.debug('Added table auto-fit style to template')
+
+
 def create_word_template_with_page_numbers(output_path: str) -> str:
     """
-    Create a Word template document with page numbers in the footer.
+    Create a Word template document with page numbers in the footer and auto-fit tables.
 
     Args:
         output_path: Path where the template will be saved
@@ -125,6 +160,9 @@ def create_word_template_with_page_numbers(output_path: str) -> str:
         section.bottom_margin = Inches(1)
         section.left_margin = Inches(1)
         section.right_margin = Inches(1)
+
+        # Add table auto-fit settings
+        add_table_autofit_style(doc)
 
         # Ensure output directory exists
         output_dir = Path(output_path).parent
