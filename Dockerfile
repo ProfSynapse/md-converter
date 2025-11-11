@@ -25,9 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
+    # Healthcheck dependencies
+    curl \
     # Cleanup
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
@@ -52,7 +54,7 @@ FROM base
 
 # Create non-root user for security
 RUN useradd -m -u 1000 -s /bin/bash appuser && \
-    mkdir -p /app /tmp/converted && \
+    mkdir -p /app /app/templates /tmp/converted && \
     chown -R appuser:appuser /app /tmp/converted
 
 WORKDIR /app
@@ -73,16 +75,11 @@ USER appuser
 EXPOSE 8080
 
 # Health check for Railway
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/health').read()" || exit 1
+# Note: Railway typically uses internal port, but we check on the PORT env var
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
 # Start application with Gunicorn
-CMD ["gunicorn", \
-     "--bind", "0.0.0.0:8080", \
-     "--workers", "2", \
-     "--threads", "2", \
-     "--timeout", "30", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info", \
-     "wsgi:app"]
+# Using sh -c to ensure PORT variable expansion works
+# ${PORT:-8080} provides fallback to 8080 if PORT is not set
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 --timeout 30 --access-logfile - --error-logfile - --log-level info wsgi:app"]

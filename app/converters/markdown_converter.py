@@ -248,7 +248,7 @@ class MarkdownConverter:
         self,
         content: str,
         output_path: str,
-        include_front_matter: bool = True
+        include_front_matter: bool = False
     ) -> str:
         """
         Convert markdown to Word document.
@@ -256,7 +256,7 @@ class MarkdownConverter:
         Args:
             content: Markdown content with YAML front matter
             output_path: Path for output .docx file
-            include_front_matter: Include front matter in document
+            include_front_matter: Include front matter in document header
 
         Returns:
             Path to generated document
@@ -294,7 +294,6 @@ class MarkdownConverter:
             extra_args = [
                 '--standalone',
                 '--highlight-style=pygments',
-                '--toc',  # Table of contents
             ]
 
             # Add template if provided
@@ -302,14 +301,22 @@ class MarkdownConverter:
                 extra_args.append(f'--reference-doc={self.template_path}')
                 logger.debug(f'Using template: {self.template_path}')
 
-            # Convert with pypandoc
+            # Convert with pypandoc (just the body content)
             pypandoc.convert_text(
-                full_document,
+                md_content,
                 'docx',
                 format='md',
                 outputfile=output_path,
                 extra_args=extra_args
             )
+
+            # Post-process: Fix table formatting (auto-fit columns, add borders)
+            self._fix_table_formatting(output_path)
+
+            # Post-process: Add front matter to first page header
+            if include_front_matter and metadata:
+                self._add_front_matter_to_header(output_path, metadata)
+                logger.debug('Added front matter to document header')
 
             file_size = Path(output_path).stat().st_size
             logger.info(f'Successfully created DOCX: {output_path} ({file_size} bytes)')
@@ -343,6 +350,12 @@ class MarkdownConverter:
             ConversionError: If conversion fails
             IOError: If file cannot be written
         """
+        if not WEASYPRINT_AVAILABLE:
+            raise ConversionError(
+                "WeasyPrint is not available. PDF conversion requires WeasyPrint "
+                "with system dependencies installed."
+            )
+
         logger.info(f'Converting to PDF: {output_path}')
 
         try:
@@ -429,11 +442,185 @@ class MarkdownConverter:
         docx_path = str(output_path / f"{base_name}.docx")
         pdf_path = str(output_path / f"{base_name}.pdf")
 
-        self.convert_to_docx(content, docx_path)
+        self.convert_to_docx(content, docx_path, include_front_matter=True)
         self.convert_to_pdf(content, pdf_path)
 
         logger.info('Successfully converted to both formats')
         return docx_path, pdf_path
+
+    def _fix_table_formatting(self, docx_path: str) -> None:
+        """
+        Fix table formatting in DOCX to use auto-fit and proper borders.
+
+        Args:
+            docx_path: Path to the DOCX file to modify
+
+        This function:
+        - Sets tables to auto-fit content (evenly distributed columns)
+        - Adds borders around all table cells
+        """
+        try:
+            doc = Document(docx_path)
+
+            if not doc.tables:
+                logger.debug('No tables found in document')
+                return
+
+            for table in doc.tables:
+                tbl = table._element
+                tblPr = tbl.tblPr
+
+                # Remove existing width specifications on columns
+                # This allows Word to auto-calculate based on content
+                for row in table.rows:
+                    for cell in row.cells:
+                        # Remove cell width
+                        tcPr = cell._element.tcPr
+                        if tcPr is not None:
+                            # Remove tcW (cell width) elements
+                            for tcW in tcPr.findall(qn('w:tcW')):
+                                tcPr.remove(tcW)
+
+                # Set table layout to auto (auto-fit content)
+                tblLayout = tblPr.find(qn('w:tblLayout'))
+                if tblLayout is None:
+                    tblLayout = OxmlElement('w:tblLayout')
+                    tblPr.append(tblLayout)
+                tblLayout.set(qn('w:type'), 'autofit')
+
+                # Set table width to 100% of page width
+                tblW = tblPr.find(qn('w:tblW'))
+                if tblW is None:
+                    tblW = OxmlElement('w:tblW')
+                    tblPr.append(tblW)
+                tblW.set(qn('w:w'), '5000')
+                tblW.set(qn('w:type'), 'pct')
+
+                # Add table borders
+                tblBorders = tblPr.find(qn('w:tblBorders'))
+                if tblBorders is None:
+                    tblBorders = OxmlElement('w:tblBorders')
+                    tblPr.append(tblBorders)
+
+                # Define border style
+                border_attrs = {
+                    qn('w:val'): 'single',
+                    qn('w:sz'): '4',  # Border size (1/8 pt)
+                    qn('w:space'): '0',
+                    qn('w:color'): '000000'  # Black
+                }
+
+                # Add all borders (top, left, bottom, right, insideH, insideV)
+                for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+                    border = tblBorders.find(qn(f'w:{border_name}'))
+                    if border is None:
+                        border = OxmlElement(f'w:{border_name}')
+                        tblBorders.append(border)
+                    for attr, val in border_attrs.items():
+                        border.set(attr, val)
+
+            doc.save(docx_path)
+            logger.info(f'Fixed formatting for {len(doc.tables)} table(s)')
+
+        except Exception as e:
+            logger.warning(f'Failed to fix table formatting: {e}', exc_info=True)
+            # Don't raise - document is still valid, just without fixed tables
+
+    def _add_front_matter_to_header(self, docx_path: str, metadata: Dict) -> None:
+        """
+        Add front matter to the first page header of a DOCX file.
+
+        Args:
+            docx_path: Path to the DOCX file to modify
+            metadata: Front matter metadata dict
+
+        Raises:
+            Exception: If DOCX modification fails
+        """
+        try:
+            # Open the document
+            doc = Document(docx_path)
+
+            # Get or create the first section
+            if not doc.sections:
+                logger.warning("Document has no sections, cannot add header")
+                return
+
+            first_section = doc.sections[0]
+
+            # Enable different first page header
+            first_section.different_first_page_header_footer = True
+
+            # Get the first page header
+            first_page_header = first_section.first_page_header
+
+            # Clear any existing content in the first page header
+            for paragraph in first_page_header.paragraphs:
+                for run in paragraph.runs:
+                    run.clear()
+
+            # Format and add front matter content
+            header_text = self._format_front_matter_for_docx_header(metadata)
+
+            # Add the formatted text to header
+            if header_text:
+                # Clear default paragraphs if they exist
+                while len(first_page_header.paragraphs) > 0:
+                    first_page_header.paragraphs[0]._element.getparent().remove(
+                        first_page_header.paragraphs[0]._element
+                    )
+
+                # Add front matter lines
+                for line in header_text.split('\n'):
+                    if line:  # Skip empty lines
+                        p = first_page_header.add_paragraph(line)
+                        p.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+                        # Make the text smaller for header
+                        for run in p.runs:
+                            run.font.size = Pt(10)
+
+            # Save the modified document
+            doc.save(docx_path)
+            logger.debug(f"Successfully added front matter to header in {docx_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to add front matter to header: {e}", exc_info=True)
+            # Don't raise - we still have a valid document, just without header
+            # This allows the conversion to succeed even if header fails
+
+    def _format_front_matter_for_docx_header(self, metadata: Dict) -> str:
+        """
+        Format front matter as plain text for DOCX header (similar to Google Docs).
+
+        Args:
+            metadata: Front matter key-value pairs
+
+        Returns:
+            str: Formatted header text
+        """
+        lines = []
+
+        # Add title if present
+        if 'title' in metadata:
+            lines.append(metadata['title'])
+
+        # Add other metadata
+        for key, value in metadata.items():
+            if key != 'title':
+                # Format key nicely
+                key_display = key.replace('_', ' ').title()
+
+                # Handle different value types
+                if isinstance(value, list):
+                    value_str = ', '.join(str(v) for v in value)
+                elif hasattr(value, 'strftime'):  # Date object
+                    value_str = value.strftime('%Y-%m-%d')
+                else:
+                    value_str = str(value)
+
+                lines.append(f"{key_display}: {value_str}")
+
+        return '\n'.join(lines)
 
     def _format_front_matter_html(self, metadata: Dict) -> str:
         """

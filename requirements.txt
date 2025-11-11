@@ -13,5 +13,16 @@ flask==3.0.3
 gunicorn==22.0.0
 werkzeug==3.0.3
 
+# OAuth2 Authentication
+Flask-Dance>=7.1.0
+
+# Google API Integration
+google-api-python-client>=2.149.0
+google-auth>=2.35.0
+
+# Markdown to Google Docs Conversion
+markgdoc>=1.0.1
+
 # Utilities
 python-dotenv==1.0.0
+python-docx==1.1.2

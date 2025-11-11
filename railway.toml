@@ -10,7 +10,8 @@ dockerfilePath = "Dockerfile"
 
 [deploy]
 # Start command (Gunicorn with dynamic PORT from Railway)
-startCommand = "gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 30 --access-logfile - --error-logfile - wsgi:app"
+# Using sh -c to ensure proper environment variable expansion
+startCommand = "sh -c 'gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 30 --access-logfile - --error-logfile - --log-level info wsgi:app'"
 
 # Restart policy
 restartPolicyType = "ON_FAILURE"

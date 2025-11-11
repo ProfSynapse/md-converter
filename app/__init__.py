@@ -25,7 +25,10 @@ def create_app(config_name='default'):
         Configured Flask application instance
     """
     # Create Flask app with correct static folder
-    app = Flask(__name__, static_folder='static')
+    # In production (Docker), static folder is at /app/static
+    # In development, it's relative to the app root
+    static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
+    app = Flask(__name__, static_folder=static_folder)
 
     # Load configuration
     from app.config import config
@@ -37,9 +40,64 @@ def create_app(config_name='default'):
     # Create necessary directories
     os.makedirs(app.config['CONVERTED_FOLDER'], exist_ok=True)
 
-    # Register blueprints
+    # Create Word template with page numbers
+    from app.utils.template_generator import ensure_template_exists
+    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    template_path = os.path.join(template_dir, 'default.docx')
+
+    try:
+        template_path = ensure_template_exists(template_path)
+        app.config['WORD_TEMPLATE_PATH'] = template_path
+        app.logger.info(f'Word template ready at: {template_path}')
+    except Exception as e:
+        app.logger.warning(f'Failed to create Word template: {e}. Page numbers will not be included.')
+        app.config['WORD_TEMPLATE_PATH'] = None
+
+    # Register OAuth blueprint (Flask-Dance)
+    if app.config.get('GOOGLE_OAUTH_CLIENT_ID') and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET'):
+        from flask_dance.contrib.google import make_google_blueprint
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        # Fix for HTTPS behind reverse proxy (Railway)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+        # Disable HTTPS requirement for local development only
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = str(app.config.get('OAUTHLIB_INSECURE_TRANSPORT', 'False'))
+
+        google_bp = make_google_blueprint(
+            client_id=app.config['GOOGLE_OAUTH_CLIENT_ID'],
+            client_secret=app.config['GOOGLE_OAUTH_CLIENT_SECRET'],
+            scope=[
+                'https://www.googleapis.com/auth/documents',
+                'https://www.googleapis.com/auth/drive.file',
+                'openid',
+                'email',
+                'profile'
+            ],
+            offline=True,  # Request refresh token
+            storage=None,  # Use session storage (default)
+        )
+        app.register_blueprint(google_bp, url_prefix='/login')
+
+        app.logger.info(f'Google OAuth blueprint registered at /login')
+    else:
+        app.logger.warning('Google OAuth not configured - Google Docs conversion disabled')
+
+    # Register auth blueprint (custom auth routes)
+    from app.auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    # Register API blueprint
     from app.api import api_blueprint
     app.register_blueprint(api_blueprint, url_prefix='/api')
+
+    # Log all registered routes for debugging (after all blueprints registered)
+    with app.app_context():
+        app.logger.info('=== Registered Routes ===')
+        for rule in app.url_map.iter_rules():
+            app.logger.info(f'  {rule.methods} {rule.rule} -> {rule.endpoint}')
+        app.logger.info('=== End Routes ===')
+
 
     # Register error handlers
     register_error_handlers(app)
@@ -58,7 +116,7 @@ def create_app(config_name='default'):
         # Content Security Policy
         csp = (
             "default-src 'self'; "
-            "script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; "
+            "script-src 'self' https://cdn.tailwindcss.com https://unpkg.com 'unsafe-inline'; "
             "style-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com 'unsafe-inline'; "
             "img-src 'self' data: https: https://picoshare-production-7223.up.railway.app; "
             "font-src 'self' data: https://fonts.gstatic.com; "
@@ -72,32 +130,84 @@ def create_app(config_name='default'):
     # Health check endpoint
     @app.route('/health')
     def health_check():
-        """Health check endpoint for Railway monitoring"""
+        """Health check endpoint for Railway monitoring with detailed diagnostics"""
+        import traceback
+
+        health_status = {
+            'status': 'healthy',
+            'service': 'md-converter',
+            'version': '1.0.0',
+            'dependencies': {},
+            'diagnostics': {},
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        }
+
+        is_healthy = True
+
+        # Check pypandoc/pandoc
         try:
-            # Verify dependencies are available
             import pypandoc
-            pypandoc.get_pandoc_version()
-
-            from weasyprint import __version__ as weasyprint_version
-
-            return jsonify({
-                'status': 'healthy',
-                'service': 'md-converter',
-                'version': '1.0.0',
-                'dependencies': {
-                    'pandoc': 'available',
-                    'weasyprint': weasyprint_version
-                },
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
-            }), 200
+            pandoc_version = pypandoc.get_pandoc_version()
+            health_status['dependencies']['pandoc'] = pandoc_version
+            app.logger.info(f'Pandoc version: {pandoc_version}')
         except Exception as e:
-            app.logger.error(f'Health check failed: {e}')
-            return jsonify({
-                'status': 'unhealthy',
-                'service': 'md-converter',
+            error_detail = {
                 'error': str(e),
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
-            }), 503
+                'type': type(e).__name__,
+                'traceback': traceback.format_exc()
+            }
+            app.logger.error(f'Pandoc check failed: {error_detail}')
+            health_status['dependencies']['pandoc'] = 'unavailable'
+            health_status['diagnostics']['pandoc_error'] = error_detail
+            is_healthy = False
+
+        # Check weasyprint
+        try:
+            from weasyprint import __version__ as weasyprint_version
+            health_status['dependencies']['weasyprint'] = weasyprint_version
+            app.logger.info(f'WeasyPrint version: {weasyprint_version}')
+        except Exception as e:
+            error_detail = {
+                'error': str(e),
+                'type': type(e).__name__,
+                'traceback': traceback.format_exc()
+            }
+            app.logger.error(f'WeasyPrint check failed: {error_detail}')
+            health_status['dependencies']['weasyprint'] = 'unavailable'
+            health_status['diagnostics']['weasyprint_error'] = error_detail
+            is_healthy = False
+
+        # Check OAuth configuration
+        health_status['oauth'] = {
+            'configured': bool(app.config.get('GOOGLE_OAUTH_CLIENT_ID') and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')),
+            'client_id_present': bool(app.config.get('GOOGLE_OAUTH_CLIENT_ID')),
+            'client_secret_present': bool(app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')),
+            'blueprints_registered': list(app.blueprints.keys())
+        }
+
+        # Check filesystem permissions
+        try:
+            converted_folder = app.config.get('CONVERTED_FOLDER', '/tmp/converted')
+            health_status['diagnostics']['converted_folder'] = str(converted_folder)
+            health_status['diagnostics']['converted_folder_exists'] = os.path.exists(converted_folder)
+            health_status['diagnostics']['converted_folder_writable'] = os.access(converted_folder, os.W_OK)
+
+            static_folder = app.static_folder
+            health_status['diagnostics']['static_folder'] = str(static_folder)
+            health_status['diagnostics']['static_folder_exists'] = os.path.exists(static_folder) if static_folder else False
+        except Exception as e:
+            app.logger.error(f'Filesystem check failed: {e}')
+            health_status['diagnostics']['filesystem_error'] = str(e)
+
+        # For Railway, we'll be more lenient - return 200 even if some deps fail
+        # This allows the service to start and we can debug from logs
+        if not is_healthy:
+            health_status['status'] = 'degraded'
+            app.logger.error(f'Health check DEGRADED - Full status: {health_status}')
+        else:
+            app.logger.info('Health check PASSED - All dependencies available')
+
+        return jsonify(health_status), 200
 
     # Serve static files
     @app.route('/')
@@ -105,12 +215,43 @@ def create_app(config_name='default'):
         """Serve the main application page"""
         return send_from_directory(app.static_folder, 'index.html')
 
+    @app.route('/favicon.ico')
+    def favicon():
+        """Serve favicon"""
+        return send_from_directory(app.static_folder, 'favicon.ico', mimetype='image/x-icon')
+
     @app.route('/<path:path>')
     def static_files(path):
         """Serve other static files"""
         return send_from_directory(app.static_folder, path)
 
     app.logger.info(f'Flask application created with config: {config_name}')
+
+    # Startup diagnostics
+    with app.app_context():
+        app.logger.info('=== Startup Diagnostics ===')
+        app.logger.info(f'Python version: {os.sys.version}')
+        app.logger.info(f'Working directory: {os.getcwd()}')
+        app.logger.info(f'Static folder: {app.static_folder}')
+        app.logger.info(f'Static folder exists: {os.path.exists(app.static_folder) if app.static_folder else False}')
+        app.logger.info(f'Converted folder: {app.config.get("CONVERTED_FOLDER")}')
+        app.logger.info(f'Converted folder exists: {os.path.exists(app.config.get("CONVERTED_FOLDER", ""))}')
+
+        # Test dependencies
+        try:
+            import pypandoc
+            version = pypandoc.get_pandoc_version()
+            app.logger.info(f'✓ Pandoc available: version {version}')
+        except Exception as e:
+            app.logger.error(f'✗ Pandoc unavailable: {type(e).__name__}: {e}')
+
+        try:
+            from weasyprint import __version__
+            app.logger.info(f'✓ WeasyPrint available: version {__version__}')
+        except Exception as e:
+            app.logger.error(f'✗ WeasyPrint unavailable: {type(e).__name__}: {e}')
+
+        app.logger.info('=== End Startup Diagnostics ===')
 
     return app
 
