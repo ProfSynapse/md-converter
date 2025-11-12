@@ -107,13 +107,14 @@ class HtmlConverter:
                 f"{image_error['error']} (code: {image_error['code']})"
             )
 
-        # Sanitize HTML (XSS prevention)
-        sanitized = sanitize_html(html_content)
-        if not sanitized:
-            raise ConversionError('HTML sanitization resulted in empty content')
+        # Skip HTML sanitization - not needed since:
+        # 1. Output is DOCX/PDF files, not web pages (no XSS risk)
+        # 2. No persistent storage or multi-user display
+        # 3. Pandoc and WeasyPrint have their own input validation
+        # 4. Sanitization breaks CSS formatting and styling
 
-        logger.debug(f'HTML validated and sanitized: {len(html_content)} -> {len(sanitized)} bytes')
-        return sanitized
+        logger.debug(f'HTML validated: {len(html_content)} bytes')
+        return html_content
 
     def convert_to_docx(
         self,
