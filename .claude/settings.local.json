@@ -28,7 +28,8 @@
       "Bash(git restore:*)",
       "Bash(FLASK_ENV=development python:*)",
       "Bash(pip show:*)",
-      "Bash(=1.48.0)"
+      "Bash(=1.48.0)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

@@ -63,8 +63,11 @@ COPY requirements.txt .
 RUN pip install --prefix=/install --no-warn-script-location -r requirements.txt
 
 # Install Playwright browsers (Chromium only)
-# This will install browsers to /root/.cache/ms-playwright
-RUN PLAYWRIGHT_BROWSERS_PATH=/ms-playwright python -m playwright install chromium --with-deps
+# Set PYTHONPATH so Python can find playwright module installed to /install prefix
+# This will install browsers to /ms-playwright
+RUN PYTHONPATH=/install/lib/python3.12/site-packages:$PYTHONPATH \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    python -m playwright install chromium --with-deps
 
 # ============================================
 # Stage 3: Runtime image
