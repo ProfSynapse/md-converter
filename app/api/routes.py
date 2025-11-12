@@ -23,7 +23,7 @@ import os
 
 from app.api import api_blueprint
 from app.api.validators import validate_upload, validate_job_id, validate_content_encoding, validate_markdown_content
-from app.converters import MarkdownConverter
+from app.converters import MarkdownConverter, HtmlConverter
 from app.utils.file_handler import (
     generate_job_id,
     get_job_directory,
@@ -80,6 +80,11 @@ def convert():
         file = request.files['file']
         original_filename = secure_filename(file.filename)
         base_name = Path(original_filename).stem
+        file_ext = Path(original_filename).suffix.lower()
+
+        # Detect file type (HTML vs Markdown)
+        is_html = file_ext in ['.html', '.htm']
+        logger.debug(f'Detected file type: {"HTML" if is_html else "Markdown"}')
 
         # Get formats (support both new array and legacy single param)
         formats = request.form.getlist('formats')  # New style: ['docx', 'pdf', 'gdocs']
@@ -154,9 +159,13 @@ def convert():
 
         logger.info(f'Job ID: {job_id}, Directory: {job_dir}')
 
-        # Initialize converter with template for page numbers
-        template_path = current_app.config.get('WORD_TEMPLATE_PATH')
-        converter = MarkdownConverter(template_path=template_path)
+        # Initialize appropriate converter based on file type
+        if is_html:
+            converter = HtmlConverter()
+        else:
+            # Markdown converter with template for page numbers
+            template_path = current_app.config.get('WORD_TEMPLATE_PATH')
+            converter = MarkdownConverter(template_path=template_path)
 
         # Convert to each requested format
         results = {}
@@ -165,7 +174,13 @@ def convert():
         if 'docx' in formats:
             try:
                 docx_path = os.path.join(job_dir, f'{base_name}.docx')
-                converter.convert_to_docx(content, docx_path, include_front_matter=True)
+
+                if is_html:
+                    # HTML conversion
+                    converter.convert_to_docx(content, docx_path, sanitize=True)
+                else:
+                    # Markdown conversion
+                    converter.convert_to_docx(content, docx_path, include_front_matter=True)
 
                 docx_info = get_file_info(docx_path)
                 results['docx'] = {
@@ -189,7 +204,13 @@ def convert():
         if 'pdf' in formats:
             try:
                 pdf_path = os.path.join(job_dir, f'{base_name}.pdf')
-                converter.convert_to_pdf(content, pdf_path)
+
+                if is_html:
+                    # HTML conversion
+                    converter.convert_to_pdf(content, pdf_path, sanitize=True)
+                else:
+                    # Markdown conversion
+                    converter.convert_to_pdf(content, pdf_path)
 
                 pdf_info = get_file_info(pdf_path)
                 results['pdf'] = {
@@ -225,11 +246,21 @@ def convert():
                 # Create converter
                 gdocs_converter = GoogleDocsConverter(docs_service, drive_service)
 
-                # Convert
-                gdocs_result = gdocs_converter.convert(
-                    content,
-                    f"{base_name} - Converted"
-                )
+                # Convert (use appropriate method based on file type)
+                if is_html:
+                    # Sanitize HTML first
+                    from app.utils.security import sanitize_html
+                    sanitized_content = sanitize_html(content)
+                    gdocs_result = gdocs_converter.convert_html(
+                        sanitized_content,
+                        f"{base_name} - Converted"
+                    )
+                else:
+                    # Markdown conversion
+                    gdocs_result = gdocs_converter.convert(
+                        content,
+                        f"{base_name} - Converted"
+                    )
 
                 results['gdocs'] = {
                     'web_view_link': gdocs_result['webViewLink'],
@@ -418,15 +449,30 @@ def handle_legacy_single_format(file, format_type, base_name):
     job_id = generate_job_id()
     job_dir = get_job_directory(job_id, str(current_app.config['CONVERTED_FOLDER']))
 
-    # Convert with template for page numbers
-    template_path = current_app.config.get('WORD_TEMPLATE_PATH')
-    converter = MarkdownConverter(template_path=template_path)
+    # Detect file type
+    file_ext = Path(file.filename).suffix.lower()
+    is_html = file_ext in ['.html', '.htm']
+
+    # Initialize appropriate converter
+    if is_html:
+        converter = HtmlConverter()
+    else:
+        template_path = current_app.config.get('WORD_TEMPLATE_PATH')
+        converter = MarkdownConverter(template_path=template_path)
+
     output_path = os.path.join(job_dir, f'{base_name}.{format_type}')
 
+    # Convert based on file and format type
     if format_type == 'docx':
-        converter.convert_to_docx(content, output_path, include_front_matter=True)
+        if is_html:
+            converter.convert_to_docx(content, output_path, sanitize=True)
+        else:
+            converter.convert_to_docx(content, output_path, include_front_matter=True)
     else:  # pdf
-        converter.convert_to_pdf(content, output_path)
+        if is_html:
+            converter.convert_to_pdf(content, output_path, sanitize=True)
+        else:
+            converter.convert_to_pdf(content, output_path)
 
     logger.info(f'Legacy conversion completed: {output_path}')
 

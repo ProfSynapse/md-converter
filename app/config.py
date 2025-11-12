@@ -19,8 +19,13 @@ class Config:
 
     # Application settings
     MAX_FILE_SIZE = int(os.environ.get('MAX_FILE_SIZE', 10 * 1024 * 1024))  # 10MB
-    ALLOWED_EXTENSIONS = {'md', 'markdown', 'txt'}
+    ALLOWED_EXTENSIONS = {'md', 'markdown', 'txt', 'html', 'htm'}
     MAX_CONTENT_LENGTH = MAX_FILE_SIZE
+
+    # HTML conversion settings
+    MAX_HTML_SIZE = 10 * 1024 * 1024  # 10MB
+    IMAGE_FETCH_TIMEOUT = 10  # seconds
+    MAX_IMAGES_PER_DOCUMENT = 100  # DOS prevention
 
     # Paths
     BASE_DIR = Path(__file__).parent.parent

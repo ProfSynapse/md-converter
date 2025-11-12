@@ -19,7 +19,29 @@ import markdown
 import logging
 from pathlib import Path
 from typing import Dict, Tuple, Optional
-from weasyprint import HTML
+
+# WeasyPrint import with availability check
+try:
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+    HTML = None
+
+# python-docx imports for DOCX manipulation
+try:
+    from docx import Document
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.shared import Pt
+    from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+except ImportError:
+    # These are optional - only needed for advanced DOCX features
+    Document = None
+    OxmlElement = None
+    qn = None
+    Pt = None
+    WD_PARAGRAPH_ALIGNMENT = None
 
 
 logger = logging.getLogger(__name__)
@@ -277,18 +299,8 @@ class MarkdownConverter:
             # Parse content (python-frontmatter is more lenient than Pandoc)
             metadata, md_content = self.parse_markdown(content)
 
-            # Build document - format front matter as markdown, not YAML
-            # This avoids Pandoc's strict YAML parser entirely
-            document_parts = []
-
-            if include_front_matter and metadata:
-                formatted_fm = self.format_front_matter(metadata)
-                if formatted_fm:
-                    document_parts.append(formatted_fm)
-
-            document_parts.append(md_content)
-
-            full_document = '\n'.join(document_parts)
+            # Note: Front matter is added to document header in post-processing
+            # rather than being converted inline with the markdown content
 
             # Prepare Pandoc arguments
             extra_args = [
@@ -459,6 +471,10 @@ class MarkdownConverter:
         - Sets tables to auto-fit content (evenly distributed columns)
         - Adds borders around all table cells
         """
+        if Document is None:
+            logger.debug('python-docx not available, skipping table formatting')
+            return
+
         try:
             doc = Document(docx_path)
 

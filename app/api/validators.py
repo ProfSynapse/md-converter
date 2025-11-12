@@ -62,16 +62,16 @@ def validate_upload(request: Request) -> Optional[Dict[str, Any]]:
         }
 
     # Validate file type
-    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'md', 'markdown', 'txt'})
+    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'md', 'markdown', 'txt', 'html', 'htm'})
 
     if not check_allowed_extension(file.filename, allowed_extensions):
         ext = Path(file.filename).suffix
         logger.warning(f'Invalid file type: {ext}')
         return {
-            'error': 'Invalid file type. Allowed types: .md, .markdown, .txt',
+            'error': 'Invalid file type. Allowed types: .md, .markdown, .txt, .html, .htm',
             'code': 'INVALID_FILE_TYPE',
             'status': 415,
-            'allowed_types': ['.md', '.markdown', '.txt'],
+            'allowed_types': ['.md', '.markdown', '.txt', '.html', '.htm'],
             'received_type': ext
         }
 
@@ -244,5 +244,5 @@ def allowed_file(filename: str) -> bool:
         >>> allowed_file('document.exe')
         False
     """
-    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'md', 'markdown', 'txt'})
+    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', {'md', 'markdown', 'txt', 'html', 'htm'})
     return check_allowed_extension(filename, allowed_extensions)

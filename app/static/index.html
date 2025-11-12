@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Convert Markdown files to Word (DOCX), PDF, and Google Docs formats">
-    <title>Markdown Converter - Convert MD to DOCX, PDF & Google Docs</title>
+    <meta name="description" content="Convert Markdown and HTML files to Word (DOCX), PDF, and Google Docs formats">
+    <title>Markdown & HTML Converter - Convert MD/HTML to DOCX, PDF & Google Docs</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -271,8 +271,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <!-- Left Column: Drop Zone (4/5 width on desktop) -->
                     <div class="md:col-span-4">
-                        <div id="dropZone" class="h-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200 flex flex-col justify-center min-h-[280px]" tabindex="0" role="button" aria-label="Upload markdown file - click or drag and drop">
-                            <input type="file" id="fileInput" accept=".md,.markdown,.txt" class="hidden" aria-label="File input" />
+                        <div id="dropZone" class="h-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-brand-aqua transition-colors duration-200 flex flex-col justify-center min-h-[280px]" tabindex="0" role="button" aria-label="Upload markdown or HTML file - click or drag and drop">
+                            <input type="file" id="fileInput" accept=".md,.markdown,.txt,.html,.htm" class="hidden" aria-label="File input" />
 
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -285,7 +285,7 @@
                                 or click to browse
                             </p>
                             <p class="mt-2 text-xs text-gray-400">
-                                .md, .markdown, .txt (max 10MB)
+                                .md, .markdown, .txt, .html, .htm (max 10MB)
                             </p>
 
                             <!-- Selected File Display -->

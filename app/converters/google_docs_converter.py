@@ -2,22 +2,29 @@
 Google Docs Converter
 Location: /Users/jrosenbaum/Documents/Code/md-converter/app/converters/google_docs_converter.py
 
-Converts markdown content with YAML front matter to Google Docs format
-using the Google Docs API v1 and markgdoc library.
+Converts markdown and HTML content to Google Docs format
+using the Google Docs API v1.
 
 Dependencies:
     - google-api-python-client: Google API client
     - markgdoc: Markdown to Google Docs conversion (optional)
     - python-frontmatter: YAML front matter parsing
+    - beautifulsoup4: HTML parsing
+    - requests: Image downloading
 
 Used by: app/api/routes.py for Google Docs conversion requests
 """
 import frontmatter
 import logging
 import time
-from typing import Dict, Tuple, Optional
+import io
+import requests
+from typing import Dict, Tuple, Optional, List
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaIoBaseUpload
+from bs4 import BeautifulSoup
+from app.utils.security import validate_image_url
 
 # Optional: markgdoc for simplified conversion
 try:
@@ -593,6 +600,322 @@ class GoogleDocsConverter:
                 'text': text
             }
         }
+
+    def convert_html(
+        self,
+        html_content: str,
+        title: str,
+        make_public: bool = False
+    ) -> Dict[str, str]:
+        """
+        Convert HTML to Google Docs.
+
+        Args:
+            html_content: HTML content string
+            title: Document title
+            make_public: Whether to make document publicly viewable (default False)
+
+        Returns:
+            dict with:
+                - documentId: Google Docs document ID
+                - webViewLink: URL to view document
+                - title: Final document title
+
+        Raises:
+            GoogleDocsConversionError: If conversion fails
+
+        Example:
+            >>> result = converter.convert_html("<h1>Hello</h1>", "Test Doc")
+            >>> doc_url = result['webViewLink']
+        """
+        self.logger.info(f"Starting Google Docs HTML conversion: {title}")
+        start_time = time.time()
+
+        try:
+            # Step 1: Create empty document
+            doc_id = self._create_document(title)
+            self.logger.info(f"Document created: {doc_id}")
+
+            # Step 2: Parse HTML and apply content
+            self._apply_html_content(doc_id, html_content)
+            self.logger.info(f"HTML content applied to document: {doc_id}")
+
+            # Step 3: Set permissions if requested
+            if make_public:
+                self._make_public(doc_id)
+                self.logger.info(f"Document made publicly viewable: {doc_id}")
+
+            # Step 4: Get shareable link
+            web_link = self._get_share_link(doc_id)
+            self.logger.info(f"Shareable link generated: {web_link}")
+
+            elapsed = time.time() - start_time
+            self.logger.info(f"HTML conversion completed in {elapsed:.2f}s")
+
+            return {
+                'documentId': doc_id,
+                'webViewLink': web_link,
+                'title': title
+            }
+
+        except HttpError as e:
+            error_msg = f"Google API error during HTML conversion: {e.content}"
+            self.logger.error(error_msg, exc_info=True)
+
+            # Handle specific error codes
+            if e.resp.status == 429:
+                raise GoogleDocsConversionError(
+                    "Rate limit exceeded. Please try again in a minute."
+                ) from e
+            elif e.resp.status == 403:
+                raise GoogleDocsConversionError(
+                    "Permission denied. Please re-authenticate."
+                ) from e
+            else:
+                raise GoogleDocsConversionError(
+                    f"Failed to convert HTML to Google Docs: {e.resp.status}"
+                ) from e
+
+        except Exception as e:
+            error_msg = f"Unexpected error during HTML conversion: {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            raise GoogleDocsConversionError(error_msg) from e
+
+    def _apply_html_content(self, doc_id: str, html_content: str) -> None:
+        """
+        Apply HTML content to document via batchUpdate.
+
+        Args:
+            doc_id: Document ID
+            html_content: HTML content string
+
+        Raises:
+            HttpError: If batchUpdate fails
+        """
+        self.logger.debug(f"Building API requests for HTML document: {doc_id}")
+
+        # Build list of batchUpdate requests from HTML
+        requests = self._parse_html_to_requests(html_content, start_index=1)
+
+        if not requests:
+            self.logger.warning("No API requests generated - empty document")
+            return
+
+        self.logger.debug(f"Applying {len(requests)} requests to document")
+
+        # Apply all requests in single batch
+        self.docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests}
+        ).execute()
+
+        self.logger.debug(f"Successfully applied {len(requests)} requests")
+
+    def _parse_html_to_requests(self, html_content: str, start_index: int = 1) -> List[dict]:
+        """
+        Parse HTML and convert to Google Docs API requests.
+
+        Supports: headings, paragraphs, bold, italic, links, images, lists, tables.
+
+        Args:
+            html_content: HTML content string
+            start_index: Starting index position in document (default: 1)
+
+        Returns:
+            List of Google Docs API request dicts
+
+        Example:
+            >>> requests = converter._parse_html_to_requests('<h1>Title</h1><p>Text</p>')
+        """
+        self.logger.debug("Parsing HTML with BeautifulSoup")
+
+        try:
+            soup = BeautifulSoup(html_content, 'html.parser')
+        except Exception as e:
+            self.logger.error(f"Failed to parse HTML: {e}")
+            raise GoogleDocsConversionError(f"Invalid HTML content: {e}")
+
+        requests = []
+        current_index = start_index
+
+        # Process body content (or entire soup if no body tag)
+        body = soup.find('body') or soup
+
+        for element in body.descendants:
+            # Skip text nodes that are just whitespace
+            if element.name is None and not str(element).strip():
+                continue
+
+            # Process elements
+            if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                # Heading
+                level = int(element.name[1])
+                text = element.get_text() + '\n'
+
+                requests.append({
+                    'insertText': {
+                        'location': {'index': current_index},
+                        'text': text
+                    }
+                })
+
+                heading_type = f'HEADING_{level}' if level <= 6 else 'HEADING_6'
+                requests.append({
+                    'updateParagraphStyle': {
+                        'range': {
+                            'startIndex': current_index,
+                            'endIndex': current_index + len(text) - 1
+                        },
+                        'paragraphStyle': {
+                            'namedStyleType': heading_type
+                        },
+                        'fields': 'namedStyleType'
+                    }
+                })
+
+                current_index += len(text)
+                # Consume children
+                for child in element.descendants:
+                    if child != element:
+                        child.extract()
+
+            elif element.name == 'p':
+                # Paragraph
+                text = element.get_text() + '\n'
+
+                requests.append({
+                    'insertText': {
+                        'location': {'index': current_index},
+                        'text': text
+                    }
+                })
+
+                current_index += len(text)
+                # Consume children
+                for child in element.descendants:
+                    if child != element:
+                        child.extract()
+
+            elif element.name == 'img':
+                # Image - fetch and upload to Drive
+                img_url = element.get('src')
+                if img_url:
+                    try:
+                        image_request = self._create_image_request(img_url, current_index)
+                        if image_request:
+                            requests.append(image_request)
+                            current_index += 1  # Images take 1 index position
+                    except Exception as e:
+                        self.logger.warning(f"Failed to insert image {img_url}: {e}")
+                        # Insert placeholder text instead
+                        placeholder = f"[Image: {img_url}]\n"
+                        requests.append({
+                            'insertText': {
+                                'location': {'index': current_index},
+                                'text': placeholder
+                            }
+                        })
+                        current_index += len(placeholder)
+
+            elif element.name == 'br':
+                # Line break
+                requests.append({
+                    'insertText': {
+                        'location': {'index': current_index},
+                        'text': '\n'
+                    }
+                })
+                current_index += 1
+
+        # If no requests were created, insert the plain text
+        if not requests:
+            text = body.get_text()
+            if text.strip():
+                requests.append({
+                    'insertText': {
+                        'location': {'index': 1},
+                        'text': text
+                    }
+                })
+
+        return requests
+
+    def _create_image_request(self, image_url: str, index: int) -> Optional[dict]:
+        """
+        Fetch image from URL, upload to Drive, and create insert request.
+
+        Args:
+            image_url: URL of image to fetch
+            index: Index position to insert image
+
+        Returns:
+            Google Docs API request dict for inserting image, or None if failed
+
+        Raises:
+            Exception: If image fetch or upload fails
+        """
+        # Validate URL (SSRF prevention)
+        if not validate_image_url(image_url):
+            self.logger.warning(f"Skipping unsafe image URL: {image_url}")
+            return None
+
+        self.logger.debug(f"Fetching image: {image_url}")
+
+        try:
+            # Fetch image
+            response = requests.get(
+                image_url,
+                timeout=10,
+                headers={'User-Agent': 'MD-Converter/1.0'}
+            )
+            response.raise_for_status()
+
+            # Get content type
+            content_type = response.headers.get('content-type', 'image/png')
+            if not content_type.startswith('image/'):
+                self.logger.warning(f"URL is not an image: {content_type}")
+                return None
+
+            # Check size (max 10MB)
+            if len(response.content) > 10 * 1024 * 1024:
+                self.logger.warning(f"Image too large: {len(response.content)} bytes")
+                return None
+
+            # Upload to Drive
+            media = MediaIoBaseUpload(
+                io.BytesIO(response.content),
+                mimetype=content_type,
+                resumable=True
+            )
+
+            file_metadata = {
+                'name': f'image_{int(time.time())}.{content_type.split("/")[1]}',
+                'mimeType': content_type
+            }
+
+            file = self.drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id,webContentLink'
+            ).execute()
+
+            file_id = file.get('id')
+            self.logger.debug(f"Image uploaded to Drive: {file_id}")
+
+            # Create insertInlineImage request
+            return {
+                'insertInlineImage': {
+                    'uri': f"https://drive.google.com/uc?id={file_id}",
+                    'location': {'index': index}
+                }
+            }
+
+        except requests.RequestException as e:
+            self.logger.error(f"Failed to fetch image {image_url}: {e}")
+            raise
+        except HttpError as e:
+            self.logger.error(f"Failed to upload image to Drive: {e}")
+            raise
 
     def _get_share_link(self, doc_id: str) -> str:
         """
