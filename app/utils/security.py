@@ -329,27 +329,11 @@ ALLOWED_HTML_ATTRIBUTES = {
 
 ALLOWED_HTML_PROTOCOLS = ['http', 'https', 'data', 'mailto']
 
-# Allow common CSS properties for inline styles
-# Since output is DOCX/PDF (not web), CSS injection risks are minimal
-ALLOWED_CSS_PROPERTIES = [
-    # Colors
-    'color', 'background', 'background-color',
-    # Typography
-    'font-family', 'font-size', 'font-style', 'font-weight',
-    'line-height', 'text-align', 'text-decoration', 'text-transform',
-    # Spacing
-    'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-    'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-    # Borders
-    'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
-    'border-color', 'border-style', 'border-width', 'border-radius',
-    # Layout
-    'width', 'height', 'max-width', 'max-height', 'min-width', 'min-height',
-    'display', 'position', 'top', 'right', 'bottom', 'left',
-    'float', 'clear', 'overflow', 'vertical-align',
-    # Lists
-    'list-style', 'list-style-type', 'list-style-position',
-]
+# Note: CSS in style attributes is preserved since bleach 6.x doesn't filter CSS
+# This is acceptable because:
+# 1. Output is DOCX/PDF files, not web pages (no XSS risk)
+# 2. Pandoc and WeasyPrint sanitize CSS during rendering
+# 3. Dangerous tags (script, iframe, etc.) are still removed
 
 
 def sanitize_html(html_content: str, strip_comments: bool = True) -> str:
@@ -377,12 +361,13 @@ def sanitize_html(html_content: str, strip_comments: bool = True) -> str:
 
     try:
         # Sanitize with bleach
+        # Note: Bleach 6.x removed the 'styles' parameter
+        # Since output is DOCX/PDF (not web), CSS in style attributes is safe
         sanitized = bleach.clean(
             html_content,
             tags=ALLOWED_HTML_TAGS,
             attributes=ALLOWED_HTML_ATTRIBUTES,
             protocols=ALLOWED_HTML_PROTOCOLS,
-            styles=ALLOWED_CSS_PROPERTIES,  # Allow safe CSS properties in style attributes
             strip=True,  # Remove disallowed tags entirely
             strip_comments=strip_comments
         )

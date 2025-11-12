@@ -26,7 +26,8 @@
       "Bash(pandoc:*)",
       "WebFetch(domain:pandoc.org)",
       "Bash(git restore:*)",
-      "Bash(FLASK_ENV=development python:*)"
+      "Bash(FLASK_ENV=development python:*)",
+      "Bash(pip show:*)"
     ],
     "deny": [],
     "ask": []
