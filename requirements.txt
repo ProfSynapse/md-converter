@@ -26,6 +26,7 @@ markgdoc>=1.0.1
 # Utilities
 python-dotenv==1.0.0
 python-docx==1.1.2
+cryptography>=41.0.0
 
 # HTML Conversion
 beautifulsoup4>=4.14.2

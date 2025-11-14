@@ -11,6 +11,8 @@ from flask import Flask, jsonify, send_from_directory
 from flask.logging import default_handler
 import logging
 import os
+import threading
+import time
 from datetime import datetime
 
 
@@ -215,6 +217,12 @@ def create_app(config_name='default'):
         """Serve the main application page"""
         return send_from_directory(app.static_folder, 'index.html')
 
+    @app.route('/privacy')
+    def privacy():
+        """Serve the privacy policy page"""
+        from flask import render_template
+        return render_template('privacy.html')
+
     @app.route('/favicon.ico')
     def favicon():
         """Serve favicon"""
@@ -252,6 +260,26 @@ def create_app(config_name='default'):
             app.logger.error(f'✗ WeasyPrint unavailable: {type(e).__name__}: {e}')
 
         app.logger.info('=== End Startup Diagnostics ===')
+
+    # Start background cleanup thread (1 hour file retention)
+    def cleanup_worker():
+        """Background thread that cleans up files older than 1 hour"""
+        from app.utils.file_handler import cleanup_old_files
+
+        while True:
+            try:
+                time.sleep(300)  # Run every 5 minutes
+                converted_folder = app.config.get('CONVERTED_FOLDER')
+                if converted_folder and os.path.exists(converted_folder):
+                    deleted = cleanup_old_files(str(converted_folder), max_age_hours=1)
+                    if deleted > 0:
+                        app.logger.info(f'Background cleanup: Deleted {deleted} job directories older than 1 hour')
+            except Exception as e:
+                app.logger.error(f'Background cleanup error: {e}', exc_info=True)
+
+    cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True, name='CleanupWorker')
+    cleanup_thread.start()
+    app.logger.info('Background cleanup thread started (1-hour file retention)')
 
     return app
 
